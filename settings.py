@@ -7,4 +7,12 @@ wall_color = 'white'
 minimap = True
 WIDTH, HEIGHT = (800, 600)
 FPS = 60
-bg_color = 'blue'
+bg_color = 'black'
+
+# PLAYER SETTINGS
+player_speed = 1
+mouse_sensitivity= .1
+ray_length = 500
+
+# MINIMAP SETTINGS
+ray_color = 'green'
