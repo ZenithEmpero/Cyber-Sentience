@@ -2,7 +2,7 @@ import pygame as pg
 import tkinter as tk
 import sys
 from settings import *
-from pan_lib import *
+from main_lib import *
 
 class Main:
     def __init__(self) -> None:
