@@ -1,0 +1,9 @@
+###### CAPSTONE GAME PROJECT
+##### First Person Horror Game
+## Members:
+1. BALBUTIN
+2. TORRES
+3. GUILING
+4. ATIENZA
+5. ACUNO
+6. PADILLA

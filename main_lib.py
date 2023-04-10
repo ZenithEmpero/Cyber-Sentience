@@ -7,6 +7,7 @@ class Minimap:
     def __init__(self, game) -> None:
         self.window = game.window
         self.player = Player(game)
+        
         self.SCB = SCB
 
     def draw(self):
@@ -17,10 +18,8 @@ class Minimap:
     def draw_line_wall(self):
         try:
             for a in line_walls:
-                pg.draw.line(self.window, wall_color, a[0], a[1])
-                pg.draw.line(self.window, wall_color, a[1], a[2])
-                pg.draw.line(self.window, wall_color, a[2], a[3])
-                pg.draw.line(self.window, wall_color, a[3], a[0])
+                for i in a:
+                    pg.draw.aaline(self.window, wall_color, (i[0], i[1]), (i[2], i[3]))
         except:
             print('MINIMAP ERROR')
 
@@ -30,11 +29,17 @@ class Minimap:
 
 class Player:
     def __init__(self, game):
+        self.walls = []
         self.game = game
         self.window = game.window
         self.alive = True
         self.player_pos = [35, 20]
         self.angle = 0
+
+        for i in line_walls:
+            for a in i:
+                self.walls.append(a)
+
 
     def draw(self):
         win = self.window
@@ -46,6 +51,8 @@ class Player:
         self.player_circle = pg.draw.circle(win, 'white', self.player_pos, 10)
         self.movement()
 
+        self.check_intersection()
+
     def draw_ray(self):
         win = self.window
         pos = self.player_pos
@@ -53,6 +60,8 @@ class Player:
         x = pos[0] + (m.cos(m.radians(ang)) * ray_length)
         y = pos[1] + (m.sin(m.radians(ang)) * ray_length)
         pg.draw.aaline(win, ray_color, pos, (x, y))
+
+        self.cast_multiple_rays()
 
     def turn(self):
         if self.game.window_selected:
@@ -95,7 +104,7 @@ class Player:
 
     def collision_checker(self, dx, dy):
         if pg.Rect.colliderect(self.player_rect_collision, wall1):
-            self.player_pos[0] -= dy
+            self.player_pos[0] -= dx
             if self.player_pos[0] > wall2[0]:
                 self.player_pos[0] += 1
             elif self.player_pos[0] < wall2[0]:
@@ -107,3 +116,39 @@ class Player:
             elif self.player_pos[1] < wall2[1]:
                 self.player_pos[1] -= 1
 
+
+    def cast_multiple_rays(self):
+        self.multiple_rays_pos = []
+        for i in range(num_rays):
+            angle = m.radians(self.angle) + (i - num_rays / 2) * cone_angle / num_rays
+            direction = [m.cos(angle), m.sin(angle)]
+            end_point = (self.player_pos[0] + direction[0] * fov_length, self.player_pos[1] + direction[1] * fov_length)
+            self.multiple_rays_pos.append(end_point)
+
+        for i in self.multiple_rays_pos:
+            pg.draw.aaline(self.window, ray_color, self.player_pos, i)
+
+    def check_intersection(self):
+        for a in self.multiple_rays_pos:
+            self.intersection_points = []
+            for i in self.walls:
+                x1 = i[0]
+                y1 = i[1]
+                x2 = i[2]
+                y2 = i[3]
+                x3 = self.player_pos[0]
+                y3 = self.player_pos[1]
+                x4 = a[0]
+                y4 = a[1]
+
+                self.t_num = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
+                self.u_num = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
+                self.den = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+                if self.den == 0:
+                    return
+                self.t = (self.t_num / self.den)    
+                self.u = self.u_num / self.den
+                self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
+                if (0 < self.t) and (self.t < 1) and (1 > self.u > 0):
+                    self.intersection_points.append(self.point_of_intersection)
+                    pg.draw.circle(self.window, 'yellow', self.point_of_intersection, 5)

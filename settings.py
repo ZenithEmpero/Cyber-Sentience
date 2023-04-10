@@ -1,3 +1,5 @@
+import math as m
+
 # DEV WINDOW
 second_window = False
 sw_size = ('250x250+50+50')
@@ -14,6 +16,11 @@ bg_color = 'black'
 player_speed = 1
 mouse_sensitivity= .1
 ray_length = 500
+
+num_rays = 90
+player_fov = 90
+cone_angle = player_fov * (m.pi / 180)
+fov_length = 500
 
 # MINIMAP SETTINGS
 ray_color = 'green'
