@@ -1,7 +1,8 @@
-# DEBUGGING
+# DEV WINDOW
 second_window = False
 sw_size = ('250x250+50+50')
 wall_color = 'white'
+SCB = False   # SHOW COLLISION BOX
 
 # GAME SETTINGS
 minimap = True
@@ -16,3 +17,4 @@ ray_length = 500
 
 # MINIMAP SETTINGS
 ray_color = 'green'
+rect_collision_color = (93, 232, 244)

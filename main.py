@@ -1,8 +1,10 @@
 import pygame as pg
 import tkinter as tk
 import sys
+from threading import Thread
 from settings import *
 from main_lib import *
+from dev_win import *
 
 class Main:
     def __init__(self) -> None:
@@ -12,19 +14,15 @@ class Main:
         self.window_size = (WIDTH, HEIGHT)
         self.window_selected = False
 
-        self.new_game(self.window_size)
-        self.second_window()
+        #self.new_game(self.window_size)
+        #self.second_window()
+        Thread(target= self.new_game(self.window_size)).start()
+        Thread(target= sec_win).start()
 
         self.minimap = Minimap(self)
 
     def new_game(self, ws):
         self.window = pg.display.set_mode(ws)
-
-    def second_window(self):
-        if second_window:
-            sw = tk.Tk() # SECOND WINDOW
-            sw.geometry(sw_size)
-            sw.mainloop()
 
     def update(self):
         self.delta_time = self.clock.tick(FPS)
@@ -33,7 +31,7 @@ class Main:
         pg.display.set_caption(f'FPS: [{int(self.clock.get_fps())}]       x: [{self.mousepos[0]}]  y: [{self.mousepos[1]}] {self.mouse_rel}')
         
         self.draw()
-        pg.display.update()
+        pg.display.flip()
         
 
     def check_events(self):

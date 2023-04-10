@@ -1,3 +1,6 @@
+import pygame as pg
+from main_lib import *
+
 outer_wall = ((0, 0), (800, 0), (800, 600), (0, 600))
 
 #Rooms
@@ -11,4 +14,11 @@ room7 = ((550, 70), (730, 70), (730, 210), (550, 210))
 room8 = ((570, 280), (730, 280), (730, 400), (570, 400))
 room9 = ((570, 400), (730, 400), (730, 600), (570, 600))
 
-rect_walls = [outer_wall, room1, room2, room3, room4, room5, room6, room7, room8, room9]
+line_walls = [outer_wall, room1, room2, room3, room4, room5, room6, room7, room8, room9]
+
+#RECT COLLISION
+# ROOM 1
+wall1 = pg.Rect(70, 0, 1, 100)
+wall2 = pg.Rect(70, 100, 230, 1)
+
+rect_walls = [wall1, wall2]

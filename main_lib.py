@@ -1,27 +1,31 @@
 from map_data import *
 from settings import *
+from dev_win import *
 import pygame as pg, math as m
-
 
 class Minimap:
     def __init__(self, game) -> None:
         self.window = game.window
         self.player = Player(game)
+        self.SCB = SCB
 
     def draw(self):
-        self.draw_rect()
+        self.draw_line_wall()
         self.player.draw()
         self.player.turn()
 
-    def draw_rect(self):
+    def draw_line_wall(self):
         try:
-            for a in rect_walls:
+            for a in line_walls:
                 pg.draw.line(self.window, wall_color, a[0], a[1])
                 pg.draw.line(self.window, wall_color, a[1], a[2])
                 pg.draw.line(self.window, wall_color, a[2], a[3])
                 pg.draw.line(self.window, wall_color, a[3], a[0])
         except:
             print('MINIMAP ERROR')
+
+        for a in rect_walls:
+            pg.draw.rect(self.window, rect_collision_color, a)
 
 
 class Player:
@@ -35,6 +39,10 @@ class Player:
     def draw(self):
         win = self.window
         self.draw_ray()
+
+        self.player_rect_collision = pg.Rect(self.player_pos[0] - 10, self.player_pos[1] - 10, 20, 20)
+        pg.draw.rect(self.window, rect_collision_color, self.player_rect_collision)
+
         self.player_circle = pg.draw.circle(win, 'white', self.player_pos, 10)
         self.movement()
 
@@ -83,6 +91,19 @@ class Player:
         self.player_pos[0] += dx
         self.player_pos[1] += dy
 
+        self.collision_checker(dx, dy)
 
-
+    def collision_checker(self, dx, dy):
+        if pg.Rect.colliderect(self.player_rect_collision, wall1):
+            self.player_pos[0] -= dy
+            if self.player_pos[0] > wall2[0]:
+                self.player_pos[0] += 1
+            elif self.player_pos[0] < wall2[0]:
+                self.player_pos[0] -= 1
+        if pg.Rect.colliderect(self.player_rect_collision, wall2):
+            self.player_pos[1] -= dy
+            if self.player_pos[1] > wall2[1]:
+                self.player_pos[1] += 1
+            elif self.player_pos[1] < wall2[1]:
+                self.player_pos[1] -= 1
 
