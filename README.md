@@ -1,6 +1,6 @@
-###### CAPSTONE GAME PROJECT
-##### First Person Horror Game
-## Members:
+## CAPSTONE GAME PROJECT
+### First Person Horror Game
+###### Members:
 1. BALBUTIN
 2. TORRES
 3. GUILING
