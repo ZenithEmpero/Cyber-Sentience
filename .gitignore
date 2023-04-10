@@ -2,3 +2,5 @@ test.py
 *.pyc
 *.pyc
 __pycache__/main_lib.cpython-311.pyc
+*.pyc
+*.pyc

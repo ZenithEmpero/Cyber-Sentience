@@ -22,7 +22,7 @@ class Main:
         self.minimap = Minimap(self)
 
     def new_game(self, ws):
-        self.window = pg.display.set_mode(ws)
+        self.window = pg.display.set_mode(ws, flags=pg.RESIZABLE)
 
     def update(self):
         self.delta_time = self.clock.tick(FPS)
@@ -52,6 +52,7 @@ class Main:
     def draw(self):
         self.window.fill(bg_color)        
         self.minimap.draw()
+        self.minimap.grahics.render()
 
     def run(self):
         while True:

@@ -7,7 +7,8 @@ class Minimap:
     def __init__(self, game) -> None:
         self.window = game.window
         self.player = Player(game)
-        
+        self.grahics = Graphics(self)
+
         self.SCB = SCB
 
     def draw(self):
@@ -106,15 +107,15 @@ class Player:
         if pg.Rect.colliderect(self.player_rect_collision, wall1):
             self.player_pos[0] -= dx
             if self.player_pos[0] > wall2[0]:
-                self.player_pos[0] += 1
+                self.player_pos[0] += .06
             elif self.player_pos[0] < wall2[0]:
-                self.player_pos[0] -= 1
+                self.player_pos[0] -= .06
         if pg.Rect.colliderect(self.player_rect_collision, wall2):
             self.player_pos[1] -= dy
             if self.player_pos[1] > wall2[1]:
-                self.player_pos[1] += 1
+                self.player_pos[1] += .06
             elif self.player_pos[1] < wall2[1]:
-                self.player_pos[1] -= 1
+                self.player_pos[1] -= .06
 
 
     def cast_multiple_rays(self):
@@ -125,12 +126,11 @@ class Player:
             end_point = (self.player_pos[0] + direction[0] * fov_length, self.player_pos[1] + direction[1] * fov_length)
             self.multiple_rays_pos.append(end_point)
 
-        for i in self.multiple_rays_pos:
-            pg.draw.aaline(self.window, ray_color, self.player_pos, i)
-
     def check_intersection(self):
+        self.points = []
         for a in self.multiple_rays_pos:
             self.intersection_points = []
+            num_of_intersections = 0
             for i in self.walls:
                 x1 = i[0]
                 y1 = i[1]
@@ -151,4 +151,53 @@ class Player:
                 self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
                 if (0 < self.t) and (self.t < 1) and (1 > self.u > 0):
                     self.intersection_points.append(self.point_of_intersection)
-                    pg.draw.circle(self.window, 'yellow', self.point_of_intersection, 5)
+                    num_of_intersections += 1
+            if len(self.intersection_points) > 0:
+                self.check_nearest_point()
+            else:
+                #pg.draw.aaline(self.window, ray_color, self.player_pos, a)
+                self.points.append(a)
+
+    def check_nearest_point(self):
+        point_dis = {}
+        if len(self.intersection_points) > 0:
+            for i in self.intersection_points:
+                x1 = self.player_pos[0]
+                y1 = self.player_pos[1]
+                x2 = i[0]
+                y2 = i[1]
+
+                dif = (abs(x1 - x2), abs(y1 - y2))
+                pyth = m.sqrt((dif[0])**2 + (dif[1]**2))
+                point_dis[pyth] = (x2, y2)
+            point_dis = sorted(point_dis.items())
+            x = point_dis[0][1]
+            #pg.draw.aaline(self.window, ray_color, self.player_pos, x)
+            self.points.append(x)
+            return
+        
+class Graphics:
+    def __init__(self, minimap):
+        self.window = minimap.window
+        self.player = minimap.player
+        self.win_size = pg.display.get_window_size()
+
+    def render(self):
+        winsize = self.win_size
+        x = 4
+        for i in self.player.points:
+            x1 = self.player.player_pos[0]
+            y1 = self.player.player_pos[1]
+            x2 = i[0]
+            y2 = i[1]
+
+            dif = (x2 - x1, y2 - y1)
+            angle = (m.degrees(m.atan2(dif[1], dif[0]))) - self.player.angle
+            pyth = m.sqrt(dif[0]**2 + dif[1]**2)
+            dis = pyth * m.cos(m.radians(angle))
+            a = (25 * winsize[1]) / (dis)
+            color = [255 * (1 - ((pyth) / (fov_length)))] * 3
+            pg.draw.line(self.window, color, (x, winsize[1]/2 + a), (x, winsize[1]/2 - a), 5)
+
+            x += 4.44
+
