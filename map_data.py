@@ -29,7 +29,14 @@ line_walls = [outer_wall, room1, room2, room3, room4, room5, room6, room7, room8
 
 #RECT COLLISION
 # ROOM 1
+
+OWC1 = pg.Rect(0, 0, 1, 600)
+OWC2 = pg.Rect(0, 600, 800, 1)
+OWC3 = pg.Rect(800, 0, 1, 600)
+OWC4 = pg.Rect(0, 0, 800, 1)
+
 wall1 = pg.Rect(70, 0, 1, 100)
 wall2 = pg.Rect(70, 100, 230, 1)
+wall3 = pg.Rect(300, 100, 1, 100)
 
-rect_walls = [wall1, wall2]
+rect_walls = [OWC1, OWC2, OWC3, OWC4, wall1, wall2]

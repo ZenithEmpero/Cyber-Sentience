@@ -8,7 +8,16 @@ class Minimap:
         self.window = game.window
         self.player = Player(game)
         self.grahics = Graphics(self)
+        self.vertical_collision = []
+        self.horizontal_collision = []
 
+        x = 0
+        for i in rect_walls:
+            if x % 2 == 0:
+                self.vertical_collision.append(i)
+            else:
+                self.horizontal_collision.append(i)
+            x += 1
         self.SCB = SCB
 
     def draw(self):
@@ -104,18 +113,21 @@ class Player:
         self.collision_checker(dx, dy)
 
     def collision_checker(self, dx, dy):
-        if pg.Rect.colliderect(self.player_rect_collision, wall1):
-            self.player_pos[0] -= dx
-            if self.player_pos[0] > wall2[0]:
-                self.player_pos[0] += .06
-            elif self.player_pos[0] < wall2[0]:
-                self.player_pos[0] -= .06
-        if pg.Rect.colliderect(self.player_rect_collision, wall2):
-            self.player_pos[1] -= dy
-            if self.player_pos[1] > wall2[1]:
-                self.player_pos[1] += .06
-            elif self.player_pos[1] < wall2[1]:
-                self.player_pos[1] -= .06
+        for i in self.game.minimap.vertical_collision:
+            if pg.Rect.colliderect(self.player_rect_collision, i):
+                self.player_pos[0] -= dx
+                if self.player_pos[0] > i[0]:
+                    self.player_pos[0] += .06
+                elif self.player_pos[0] < i[0]:
+                    self.player_pos[0] -= .06
+
+        for i in self.game.minimap.horizontal_collision:
+            if pg.Rect.colliderect(self.player_rect_collision, i):
+                self.player_pos[1] -= dy
+                if self.player_pos[1] > i[1]:
+                    self.player_pos[1] += .06
+                elif self.player_pos[1] < i[1]:
+                    self.player_pos[1] -= .06
 
 
     def cast_multiple_rays(self):
@@ -195,7 +207,7 @@ class Graphics:
             angle = (m.degrees(m.atan2(dif[1], dif[0]))) - self.player.angle
             pyth = m.sqrt(dif[0]**2 + dif[1]**2)
             dis = pyth * m.cos(m.radians(angle))
-            a = (25 * winsize[1]) / (dis)
+            a = (50 * winsize[1]) / (dis)
             color = [255 * (1 - ((pyth) / (fov_length)))] * 3
             pg.draw.line(self.window, color, (x, winsize[1]/2 + a), (x, winsize[1]/2 - a), 5)
 
