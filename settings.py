@@ -20,7 +20,7 @@ ray_length = 500
 num_rays = 180
 player_fov = 50
 cone_angle = player_fov * (m.pi / 180)
-fov_length = 500
+fov_length = 15000
 
 # MINIMAP SETTINGS
 ray_color = 'green'
