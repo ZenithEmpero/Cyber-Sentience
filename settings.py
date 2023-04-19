@@ -18,12 +18,13 @@ mouse_sensitivity= .1
 ray_length = 500
 
 num_rays = 180
-player_fov = 50
+player_fov = 45
 cone_angle = player_fov * (m.pi / 180)
-fov_length = 15000
+fov_length = 500
 
 # MINIMAP SETTINGS
 ray_color = 'green'
 rect_collision_color = (93, 232, 244)
 
 # GRAPHICS SETTINGS
+WALL_SIZE = 40

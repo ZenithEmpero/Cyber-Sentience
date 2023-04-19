@@ -21,7 +21,7 @@ class Minimap:
         self.SCB = SCB
 
     def draw(self):
-        self.draw_line_wall()
+        #self.draw_line_wall()
         self.player.draw()
         self.player.turn()
 
@@ -45,6 +45,8 @@ class Player:
         self.alive = True
         self.player_pos = [35, 20]
         self.angle = 0
+        
+        self.vertical_angle = pg.display.get_window_size()[1] / 2
 
         for i in line_walls:
             for a in i:
@@ -78,11 +80,24 @@ class Player:
             mouse_rel = self.game.mouse_rel
             mouse_pos = self.game.mousepos
             win_size = pg.display.get_window_size()
-            if mouse_rel != (0, 0):
+            if mouse_rel[0] != 0:
                 self.angle += (mouse_rel[0] * mouse_sensitivity)
+            if mouse_rel[1] != 0:
+                if self.vertical_angle < (win_size[1] * .8):
+                    if mouse_rel[1] > 0:
+                        pass
+                    else:
+                        self.vertical_angle -= ((mouse_rel[1] * 10) * mouse_sensitivity)   
+
+                if self.vertical_angle > (win_size[1] * .2):
+                    if mouse_rel[1] < 0:
+                        pass
+                    else:
+                        self.vertical_angle -= ((mouse_rel[1] * 10) * mouse_sensitivity) 
             
             if (mouse_pos[0] > (WIDTH - 200)) or (mouse_pos[0] < 200) or (mouse_pos[1] > (HEIGHT - 200)) or (mouse_pos[1] < 200):
                 pg.mouse.set_pos(WIDTH/2, HEIGHT/2)
+
 
     def movement(self):
         speed = (player_speed / 30) * self.game.delta_time
@@ -117,17 +132,17 @@ class Player:
             if pg.Rect.colliderect(self.player_rect_collision, i):
                 self.player_pos[0] -= dx
                 if self.player_pos[0] > i[0]:
-                    self.player_pos[0] += .06
+                    self.player_pos[0] += .01
                 elif self.player_pos[0] < i[0]:
-                    self.player_pos[0] -= .06
+                    self.player_pos[0] -= .01
 
         for i in self.game.minimap.horizontal_collision:
             if pg.Rect.colliderect(self.player_rect_collision, i):
                 self.player_pos[1] -= dy
                 if self.player_pos[1] > i[1]:
-                    self.player_pos[1] += .06
+                    self.player_pos[1] += .01
                 elif self.player_pos[1] < i[1]:
-                    self.player_pos[1] -= .06
+                    self.player_pos[1] -= .01
 
 
     def cast_multiple_rays(self):
@@ -190,11 +205,14 @@ class Player:
         
 class Graphics:
     def __init__(self, minimap):
+        self.wall_texture = pg.image.load('textures/wall.jpg')
         self.window = minimap.window
         self.player = minimap.player
         self.win_size = pg.display.get_window_size()
 
-    def render(self):
+    def render_walls(self):
+        self.vertical_angle = self.player.vertical_angle
+        va = self.vertical_angle
         winsize = self.win_size
         x = 4
         for i in self.player.points:
@@ -208,8 +226,13 @@ class Graphics:
             pyth = m.sqrt(dif[0]**2 + dif[1]**2)
             dis = pyth * m.cos(m.radians(angle))
             a = (50 * winsize[1]) / (dis)
-            color = [255 * (1 - ((pyth) / (fov_length)))] * 3
-            pg.draw.line(self.window, color, (x, winsize[1]/2 + a), (x, winsize[1]/2 - a), 5)
+            color = [181, 181, 181]
+            c1 = []
+            for i in color:
+                c1.append(i * (1 - (pyth / fov_length)))
+            pg.draw.line(self.window, c1, (x, va + a), (x, va - a), 5)
 
             x += 4.44
+
+    #def render_ceiling
 

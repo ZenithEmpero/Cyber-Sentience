@@ -21,6 +21,11 @@ class Main:
 
         self.minimap = Minimap(self)
 
+        self.image = pg.image.load('textures/sample_png.png')
+        width = self.image.get_rect().width
+        height = self.image.get_rect().height
+        self.image = pg.transform.scale(self.image, (width/10, height/10))
+
     def new_game(self, ws):
         self.window = pg.display.set_mode(ws, flags=pg.RESIZABLE)
 
@@ -52,7 +57,11 @@ class Main:
     def draw(self):
         self.window.fill(bg_color)        
         self.minimap.draw()
-        self.minimap.grahics.render()
+        self.minimap.grahics.render_walls()
+        self.minimap.draw_line_wall()
+
+
+        self.window.blit(self.image, (200, 150))
 
     def run(self):
         while True:
