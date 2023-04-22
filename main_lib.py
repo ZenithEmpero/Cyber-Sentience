@@ -1,12 +1,17 @@
 from map_data import *
 from settings import *
 from dev_win import *
+from pathfinding.core.grid import *
+from pathfinding.finder.a_star import AStarFinder
 import pygame as pg, math as m
+import sys
+
 
 class Minimap:
     def __init__(self, game) -> None:
         self.window = game.window
         self.player = Player(game)
+        self.enemy = Enemy(game)
         self.grahics = Graphics(self)
         self.vertical_collision = []
         self.horizontal_collision = []
@@ -22,6 +27,7 @@ class Minimap:
 
     def draw(self):
         #self.draw_line_wall()
+        
         self.player.draw()
         self.player.turn()
 
@@ -37,7 +43,15 @@ class Minimap:
             pg.draw.rect(self.window, rect_collision_color, a)
 
 
+    def draw_nodes(self):
+        try:
+            for i in self.enemy.pos_nodes:
+                pg.draw.circle(self.window, 'yellow', i, 5)
+        except:
+            pass
+
 class Player:
+    
     def __init__(self, game):
         self.walls = []
         self.game = game
@@ -225,7 +239,8 @@ class Graphics:
             angle = (m.degrees(m.atan2(dif[1], dif[0]))) - self.player.angle
             pyth = m.sqrt(dif[0]**2 + dif[1]**2)
             dis = pyth * m.cos(m.radians(angle))
-            a = (50 * winsize[1]) / (dis)
+            a = ((50 * winsize[1]) / (dis)) #/ 10
+            #a = (50000 / pyth) / 10
             color = [181, 181, 181]
             c1 = []
             for i in color:
@@ -236,3 +251,70 @@ class Graphics:
 
     #def render_ceiling
 
+class Enemy:
+    def __init__(self, game) -> None:
+        self.entity = 0
+        self.game = game
+        self.window = game.window
+        self.coordinate = (35, 70)
+        
+
+        
+    def draw(self):
+        self.draw_render_box()
+        self.movement()
+
+    def draw_render_box(self):
+        self.render_box = [(self.coordinate[0] - 10, self.coordinate[1] - 10), (self.coordinate[0] + 10, self.coordinate[1] + 10)]
+        pg.draw.line(self.window, 'white', (self.render_box[0][0], self.coordinate[1]), (self.render_box[1][0], self.coordinate[1]))
+        pg.draw.line(self.window, 'white', (self.coordinate[0], self.render_box[0][1]), (self.coordinate[0], self.render_box[1][1]))
+
+    def movement(self):
+        self.path_gen()
+        for i in self.pos_nodes:
+            self.at_des = False
+            self.target_node = i
+            while True:
+                self.speed = (1/3000) * self.game.delta_time
+                epos = self.coordinate
+                targ_coor = self.target_node
+                if targ_coor[0] < epos[0]:
+                    x = epos[0] - self.speed
+                elif targ_coor[0] > epos[0]:
+                    x = epos[0] + self.speed
+
+                if targ_coor[1] < epos[1]:
+                    y = epos[1] - self.speed
+                elif targ_coor[1] > epos[1]:
+                    y = epos[1] + self.speed
+                self.coordinate = (x, y)
+                
+                if self.check_if_des():
+                    break
+
+    def check_if_des(self):
+        if abs(self.coordinate[0] - self.target_node[0]) < 3 and abs(self.coordinate[1] - self.target_node[1]) < 3:
+            self.pos_nodes.pop(0)
+            return True
+        else: 
+            return False
+
+    def path_gen(self):
+        grid = Grid(matrix= matrix) 
+
+        start = grid.node(0, 0)
+        end = grid.node(26, 20)
+
+        finder = AStarFinder()
+
+        self.path, runs = finder.find_path(start, end, grid)
+
+        self.pos_node()
+
+    def path_checker(self):
+        pass
+
+    def pos_node(self):
+        self.pos_nodes = []
+        for i in self.path:
+            self.pos_nodes.append(((i[0] * x_dif), (i[1] * y_dif)))

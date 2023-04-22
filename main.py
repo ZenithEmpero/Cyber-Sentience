@@ -59,8 +59,9 @@ class Main:
         self.minimap.draw()
         self.minimap.grahics.render_walls()
         self.minimap.draw_line_wall()
+        self.minimap.draw_nodes()
 
-
+        self.minimap.enemy.draw()
         self.window.blit(self.image, (200, 150))
 
     def run(self):
