@@ -31,6 +31,7 @@ class Main:
 
     def update(self):
         self.delta_time = self.clock.tick(FPS)
+
         self.mousepos = pg.mouse.get_pos()
         self.mouse_rel = pg.mouse.get_rel()
         pg.display.set_caption(f'FPS: [{int(self.clock.get_fps())}]       x: [{self.mousepos[0]}]  y: [{self.mousepos[1]}] {self.mouse_rel}')
