@@ -78,8 +78,8 @@ for row in matrix:
     y1 = y
     x = 10
     for i in row:
-        x1 = x
-        x += x_dif
+        x1 = 0
+        x1 += x_dif
 
         if i != 0:
             nodes.append((x1, y1))

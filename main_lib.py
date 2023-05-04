@@ -11,8 +11,8 @@ import sys
 class Minimap:
     def __init__(self, game) -> None:
         self.window = game.window
-        self.player = Player(game)
         self.enemy = Enemy(game)
+        self.player = Player(game, self.enemy)
         self.grahics = Graphics(self)
         self.vertical_collision = []
         self.horizontal_collision = []
@@ -60,15 +60,19 @@ class Minimap:
 
 class Player:
     
-    def __init__(self, game):
+    def __init__(self, game, enemy):
         self.walls = []
         self.game = game
         self.window = game.window
+        self.enemy = enemy
         self.alive = True
         self.player_pos = [35, 20]
         self.angle = 0
         
         self.vertical_angle = pg.display.get_window_size()[1] / 2
+        self.middle_point = 0
+        self.point_len = 0
+        self.points = []
 
         for i in line_walls:
             for a in i:
@@ -177,7 +181,11 @@ class Player:
 
     def check_intersection(self):
         self.points = []
+        enemy_box_intersection_points = []
         for a in self.multiple_rays_pos:
+            
+ 
+
             self.intersection_points = []
             num_of_intersections = 0
             for i in self.walls:
@@ -200,12 +208,54 @@ class Player:
                 self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
                 if (0 < self.t) and (self.t < 1) and (1 > self.u > 0):
                     self.intersection_points.append(self.point_of_intersection)
+                    
                     num_of_intersections += 1
+
+
+
             if len(self.intersection_points) > 0:
-                self.check_nearest_point()
+                z = self.check_nearest_point()
+                self.points.append(z)
             else:
                 #pg.draw.aaline(self.window, ray_color, self.player_pos, a)
                 self.points.append(a)
+
+        
+        for a in self.points:
+            x = self.enemy.line1, self.enemy.line2
+            
+            for i in x:
+                x1 = i[0][0]
+                y1 = i[0][1]
+                x2 = i[1][0]
+                y2 = i[1][1]
+                x3 = self.player_pos[0]
+                y3 = self.player_pos[1]
+                x4 = a[0]
+                y4 = a[1]
+
+                self.t_num = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
+                self.u_num = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
+                self.den = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+                if self.den == 0:
+                    return
+                self.t = (self.t_num / self.den)    
+                self.u = self.u_num / self.den
+                self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
+                if (0 < self.t < 1) and (0 < self.u < 1):
+                    enemy_box_intersection_points.append(a)
+                    pg.draw.aaline(self.window, 'green', self.player_pos, self.point_of_intersection)
+
+        try:
+            self.point_len = m.ceil(len(enemy_box_intersection_points)/2)
+            self.middle_point = enemy_box_intersection_points[self.point_len]
+        except:
+            pass
+            #print(len(enemy_box_intersection_points)/2)
+
+            
+
+            
 
     def check_nearest_point(self):
         point_dis = {}
@@ -222,8 +272,8 @@ class Player:
             point_dis = sorted(point_dis.items())
             x = point_dis[0][1]
             #pg.draw.aaline(self.window, ray_color, self.player_pos, x)
-            self.points.append(x)
-            return
+            #self.points[x] = None
+            return x
         
 class Graphics:
     def __init__(self, minimap):
@@ -232,11 +282,15 @@ class Graphics:
         self.player = minimap.player
         self.win_size = pg.display.get_window_size()
 
+        self.A_texture = pg.image.load('textures/A.png')
+        self.A_texture_scaled = pg.transform.scale(self.A_texture, (self.A_texture.get_width() * 8, self.A_texture.get_height() * 8))
+
     def render_walls(self):
         self.vertical_angle = self.player.vertical_angle
         va = self.vertical_angle
         winsize = self.win_size
         x = 4
+        coord = None
         for i in self.player.points:
             x1 = self.player.player_pos[0]
             y1 = self.player.player_pos[1]
@@ -251,11 +305,33 @@ class Graphics:
             #a = (50000 / pyth) / 10
             color = [181, 181, 181]
             c1 = []
-            for i in color:
-                c1.append(i * (1 - (pyth / fov_length)))
+            for b in color:
+                c1.append(b * (1 - (pyth / fov_length)))
             pg.draw.line(self.window, c1, (x, va + a), (x, va - a), 5)
 
+
+            if self.player.point_len != 0:
+                #print(self.player.middle_point, '==', i)
+                #print(self.player.points)
+                if self.player.middle_point == i:
+                    #pg.draw.circle(self.window, 'red', (x, va), 100)
+                    coord = (x, va)
+                    
             x += 4.44
+        try:
+
+            self.window.blit(self.A_texture_scaled, coord)
+        except:
+            pass
+
+            
+
+'''
+            item = self.player.points[i]
+            if item == 'Enemy':
+                pg.draw.circle(self.window, 'red', (x, va), 100)
+
+'''
 
     #def render_ceiling
 
@@ -265,6 +341,8 @@ class Enemy:
         self.game = game
         self.window = game.window
         self.coordinate = (35, 70)
+        self.line1 = (0, 0), (0, 0)
+        self.line2 = (0, 0), (0, 0)
         self.path_gen()
 
         
@@ -274,11 +352,13 @@ class Enemy:
 
     def draw_render_box(self):
         self.render_box = [(self.coordinate[0] - 10, self.coordinate[1] - 10), (self.coordinate[0] + 10, self.coordinate[1] + 10)]
+        self.line1 = (self.render_box[0][0], self.coordinate[1]), (self.render_box[1][0], self.coordinate[1])
+        self.line2 = (self.coordinate[0], self.render_box[0][1]), (self.coordinate[0], self.render_box[1][1])
         pg.draw.line(self.window, 'white', (self.render_box[0][0], self.coordinate[1]), (self.render_box[1][0], self.coordinate[1]))
         pg.draw.line(self.window, 'white', (self.coordinate[0], self.render_box[0][1]), (self.coordinate[0], self.render_box[1][1]))
 
     def movement(self):
-        self.speed = (2/30) * self.game.delta_time
+        self.speed = (1/30) * self.game.delta_time
 
 
         #for i in self.pos_nodes:
