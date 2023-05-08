@@ -39,7 +39,6 @@ class Main:
         self.draw()
         pg.display.flip()
         
-
     def check_events(self):
         for events in pg.event.get():
             if events.type == pg.QUIT:

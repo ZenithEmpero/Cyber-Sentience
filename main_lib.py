@@ -3,6 +3,7 @@ from settings import *
 from dev_win import *
 from pathfinding.core.grid import *
 from pathfinding.finder.a_star import AStarFinder
+from pathfinding.core.diagonal_movement import DiagonalMovement
 from threading import Thread
 import pygame as pg, math as m
 import sys
@@ -10,8 +11,9 @@ import sys
 
 class Minimap:
     def __init__(self, game) -> None:
+        self.game = game
         self.window = game.window
-        self.enemy = Enemy(game)
+        self.enemy = Enemy(self)
         self.player = Player(game, self.enemy)
         self.grahics = Graphics(self)
         self.vertical_collision = []
@@ -280,10 +282,10 @@ class Graphics:
         self.wall_texture = pg.image.load('textures/wall.jpg')
         self.window = minimap.window
         self.player = minimap.player
+        self.enemy = minimap.enemy
         self.win_size = pg.display.get_window_size()
 
         self.A_texture = pg.image.load('textures/A.png')
-        self.A_texture_scaled = pg.transform.scale(self.A_texture, (self.A_texture.get_width() * 8, self.A_texture.get_height() * 8))
 
     def render_walls(self):
         self.vertical_angle = self.player.vertical_angle
@@ -319,10 +321,19 @@ class Graphics:
                     
             x += 4.44
         try:
-
-            self.window.blit(self.A_texture_scaled, coord)
+            self.enemy_sprite_size_calculator()
+            self.window.blit(self.A_texture_scaled, (coord[0] - self.A_texture_dimension_half[0], coord[1] - (self.A_texture_dimension_half[1] - (self.a))))
+        
         except:
             pass
+            #print('Error render_walls()')
+
+
+    def enemy_sprite_size_calculator(self):
+        self.a = ((2.3 * self.win_size[1]) / (self.enemy.distance_to_player))
+        self.A_texture_scaled = pg.transform.scale(self.A_texture, (self.A_texture.get_width() * self.a, self.A_texture.get_height() * self.a))
+        self.A_texture_dimension = self.A_texture_scaled.get_rect().size
+        self.A_texture_dimension_half = ((self.A_texture_dimension[0] / 2), (self.A_texture_dimension[1] / 2))
 
             
 
@@ -336,19 +347,22 @@ class Graphics:
     #def render_ceiling
 
 class Enemy:
-    def __init__(self, game) -> None:
+    def __init__(self, minimap) -> None:
         self.entity = 0
-        self.game = game
-        self.window = game.window
+        self.minimap = minimap
+        self.game = minimap.game
+        self.window = minimap.window
         self.coordinate = (35, 70)
         self.line1 = (0, 0), (0, 0)
         self.line2 = (0, 0), (0, 0)
+        self.distance_to_player = 0
         self.path_gen()
 
         
     def draw(self):
         self.draw_render_box()
         self.movement()
+        self.distance_to_player_checker()
 
     def draw_render_box(self):
         self.render_box = [(self.coordinate[0] - 10, self.coordinate[1] - 10), (self.coordinate[0] + 10, self.coordinate[1] + 10)]
@@ -358,28 +372,40 @@ class Enemy:
         pg.draw.line(self.window, 'white', (self.coordinate[0], self.render_box[0][1]), (self.coordinate[0], self.render_box[1][1]))
 
     def movement(self):
-        self.speed = (1/30) * self.game.delta_time
+        if len(self.pos_nodes) > 0:
+            self.speed = (1/30) * self.game.delta_time
+            
+            #for i in self.pos_nodes:
+            self.at_des = False
+            self.target_node = self.pos_nodes[0]
+            targ_coor = self.target_node
+                #while True:
+            epos = self.coordinate
+            x = epos[0]
+            y = epos[1]
+            '''
+            if targ_coor[0] < epos[0]:
+                x = epos[0] - self.speed
+            elif targ_coor[0] > epos[0]:
+                x = epos[0] + self.speed
 
+            if targ_coor[1] < epos[1]:
+                y = epos[1] - self.speed
+            elif targ_coor[1] > epos[1]:
+                y = epos[1] + self.speed'''
+            
+            dx = targ_coor[0] - epos[0]
+            dy = targ_coor[1] - epos[1]
 
-        #for i in self.pos_nodes:
-        self.at_des = False
-        self.target_node = self.pos_nodes[0]
-        targ_coor = self.target_node
-            #while True:
-        epos = self.coordinate
-        if targ_coor[0] < epos[0]:
-            x = epos[0] - self.speed
-        elif targ_coor[0] > epos[0]:
-            x = epos[0] + self.speed
+            angle = m.atan2(dy, dx)
 
-        if targ_coor[1] < epos[1]:
-            y = epos[1] - self.speed
-        elif targ_coor[1] > epos[1]:
-            y = epos[1] + self.speed
-        self.coordinate = (x, y)
-        
-        if self.check_if_des():
-            self.pos_nodes.pop(0)
+            x += m.cos(angle) * self.speed
+            y += m.sin(angle) * self.speed
+            
+            self.coordinate = (x, y)
+            
+            if self.check_if_des():
+                self.pos_nodes.pop(0)
 
     def check_if_des(self):
         if abs(self.coordinate[0] - self.target_node[0]) < 3 and abs(self.coordinate[1] - self.target_node[1]) < 3:
@@ -392,20 +418,27 @@ class Enemy:
         grid = Grid(matrix= matrix) 
 
         start = grid.node(0, 0)
-        end = grid.node(17, 15)
+        end = grid.node(26, 20)
 
         #end = grid.node(26, 20)
 
-        finder = AStarFinder()
+        finder = AStarFinder(diagonal_movement= DiagonalMovement.always)
 
         self.path, runs = finder.find_path(start, end, grid)
 
         self.pos_node()
 
-    def path_checker(self):
+    def finish_path(self):
         pass
 
     def pos_node(self):
         self.pos_nodes = []
         for i in self.path:
             self.pos_nodes.append(((i[0] * x_dif), (i[1] * y_dif)))
+
+    
+    def distance_to_player_checker(self):
+        self.player_pos = self.minimap.player.player_pos
+        x = abs(self.player_pos[0] - self.coordinate[0])
+        y = abs(self.player_pos[1] - self.coordinate[1])
+        self.distance_to_player = m.sqrt(x**2 + y**2) # HYPOTENUSE FORMULA
