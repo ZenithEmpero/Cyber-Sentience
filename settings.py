@@ -13,7 +13,7 @@ FPS = 60
 bg_color = 'black'
 
 # PLAYER SETTINGS
-player_speed = 1.3 #1
+player_speed = 1 #1
 mouse_sensitivity= .1
 ray_length = 500
 
@@ -25,6 +25,8 @@ fov_length = 500
 # MINIMAP SETTINGS
 ray_color = 'green'
 rect_collision_color = (93, 232, 244)
+
+enemy_speed = 1
 
 # GRAPHICS SETTINGS
 WALL_SIZE = 40

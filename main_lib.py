@@ -51,17 +51,16 @@ class Minimap:
 
 
     def draw_nodes(self):
-        '''try:
+        try:
             for i in self.enemy.pos_nodes:
                 pg.draw.circle(self.window, 'yellow', i, 5)
         except:
             pass
-'''
-        try:
+        '''try:
             for i in nodes:
                 pg.draw.circle(self.window, 'yellow', i, 5)
         except:
-            pass
+            pass'''
 
 class Player:
     
@@ -302,17 +301,27 @@ class Graphics:
         self.transparent_surface = pg.Surface((self.win_size[0], self.win_size[1]), pg.SRCALPHA)
 
         #AUDIO
+        
+        
         self.heartbeat_audio = pg.mixer.Sound('audio/heart_beat.mp3')
-        self.heartbeat_volume = 0.5
+        self.heartbeat_audio.set_volume(0)
         self.heartbeat_audio.play(loops=-1)
         
         self.tv_static_audio = pg.mixer.Sound('audio/tv_static.wav')
-        self.tv_static_volume = 0.5
+        self.tv_static_audio.set_volume(0)
         self.tv_static_audio.play(loops=-1)
+
+        self.ambience = pg.mixer.Sound('audio/ambience.wav')
+        self.ambience.set_volume(.3)
+        self.ambience.play(loops=-1)
+
+        self.footsteps = pg.mixer.Sound('audio/footsteps.wav')
+        self.footsteps.set_volume(1)
+        self.footsteps.play(loops=-1)
 
     def render_walls(self):
         self.vertical_angle = self.player.vertical_angle
-        va = self.vertical_angle
+        va = 300#self.vertical_angle
         winsize = self.win_size
         x = 4
         coord = None
@@ -361,8 +370,8 @@ class Graphics:
 
     def enemy_sprite_size_calculator(self):
         self.a = ((2.3 * self.win_size[1]) / (self.enemy.distance_to_player))
-        if self.a > 120:
-            self.a = 120
+        if self.a > 90:
+            self.a = 90
         self.A_texture_scaled = pg.transform.scale(self.A_texture, (self.A_texture_size[0] * self.a, self.A_texture_size[1] * self.a))
         self.A_texture_dimension = self.A_texture_scaled.get_rect().size
         self.A_texture_dimension_half = ((self.A_texture_dimension[0] / 2), (self.A_texture_dimension[1] / 2))
@@ -381,7 +390,7 @@ class Graphics:
         self.window.blit(self.transparent_surface, (0, 0))
 
         f = 1
-        self.c = self.min_and_max(0, f, 300)
+        self.c = self.min_and_max(0, f, 250)
         self.d = self.min_and_max(0, 0.25, 150)
         #elf.c = max(0, min(f, (170 - self.enemy.distance_to_player) * (f / 170)))
         #print(self.d)
@@ -410,11 +419,12 @@ class Enemy:
         self.minimap = minimap
         self.game = minimap.game
         self.window = minimap.window
-        self.coordinate = (35, 70)
+        self.coordinate = (800, 600)
         self.line1 = (0, 0), (0, 0)
         self.line2 = (0, 0), (0, 0)
         self.distance_to_player = 0
-        self.path_gen()
+        self.last_node = (0, 0)
+        self.path_gen(35, 24, 35, 24)
 
         
     def draw(self):
@@ -431,7 +441,7 @@ class Enemy:
 
     def movement(self):
         if len(self.pos_nodes) > 0:
-            self.speed = (1/30) * self.game.delta_time
+            self.speed = (enemy_speed/30) * self.game.delta_time
             
             #for i in self.pos_nodes:
             self.at_des = False
@@ -465,6 +475,9 @@ class Enemy:
             if self.check_if_des():
                 self.pos_nodes.pop(0)
 
+        else:
+            self.path_finished()
+
     def check_if_des(self):
         if abs(self.coordinate[0] - self.target_node[0]) < 3 and abs(self.coordinate[1] - self.target_node[1]) < 3:
             #self.pos_nodes.pop(0)
@@ -472,13 +485,12 @@ class Enemy:
         else: 
             return False
 
-    def path_gen(self):
+    def path_gen(self, x1, y1, x2, y2):
         grid = Grid(matrix= matrix) 
 
-        start = grid.node(1, 1)
-        end = grid.node(25, 7)
-
-        #end = grid.node(26, 20)
+        start = grid.node(x1, y1)
+        end = grid.node(x2, y2)
+        self.last_node = (x2, y2)
 
         finder = AStarFinder(diagonal_movement= DiagonalMovement.always)
 
@@ -486,8 +498,19 @@ class Enemy:
 
         self.pos_node()
 
-    def finish_path(self):
-        pass
+    def path_finished(self):
+        while True:
+            if self.random_node_picker():
+                break
+        self.path_gen(self.last_node[0], self.last_node[1], self.matrix_x, self.matrix_y)
+
+    def random_node_picker(self):
+        self.matrix_x = r.randint(0, column_lenght - 1)
+        self.matrix_y = r.randint(0, row_length - 1)
+        if matrix[self.matrix_y][self.matrix_x] == 1:
+            return True
+        else:
+            return False
 
     def pos_node(self):
         self.pos_nodes = []
@@ -497,6 +520,6 @@ class Enemy:
     
     def distance_to_player_checker(self):
         self.player_pos = self.minimap.player.player_pos
-        x = round(abs(self.player_pos[0] - self.coordinate[0]), 2)
-        y = round(abs(self.player_pos[1] - self.coordinate[1]), 2)
-        self.distance_to_player = m.sqrt(x**2 + y**2) # HYPOTENUSE FORMULA
+        x = round(self.player_pos[0] - self.coordinate[0], 2)
+        y = round(self.player_pos[1] - self.coordinate[1], 2)
+        self.distance_to_player = round(m.sqrt(x**2 + y**2), 2) # HYPOTENUSE FORMULA
