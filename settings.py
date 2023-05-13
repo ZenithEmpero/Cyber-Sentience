@@ -19,7 +19,7 @@ ray_length = 500
 
 num_rays = 180
 player_fov = 50 #40 #45
-cone_angle = player_fov * (m.pi / 180)
+#cone_angle = player_fov * (m.pi / 180)
 fov_length = 500
 
 # MINIMAP SETTINGS
