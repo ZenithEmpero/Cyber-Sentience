@@ -8,6 +8,7 @@ from threading import Thread
 import pygame as pg, math as m
 import sys
 
+pg.mixer.init()
 
 class Minimap:
     def __init__(self, game) -> None:
@@ -29,11 +30,13 @@ class Minimap:
         self.SCB = SCB
 
     def draw(self):
+    
         #self.draw_line_wall()
         
         self.player.draw()
         #self.enemy.draw()
         self.player.turn()
+
 
     def draw_line_wall(self):
         try:
@@ -286,6 +289,15 @@ class Graphics:
         self.win_size = pg.display.get_window_size()
 
         self.A_texture = pg.image.load('textures/A.png')
+        self.A_texture_size = self.A_texture.get_width(), self.A_texture.get_height()
+        
+        self.chase_image = pg.image.load('textures/chase_image.jpg').convert_alpha()
+
+        #AUDIO
+        self.heartbeat_audio = pg.mixer.Sound('audio/heart_beat.mp3')
+        self.heartbeat_volume = 0.5
+        self.heartbeat_audio.play()
+        
 
     def render_walls(self):
         self.vertical_angle = self.player.vertical_angle
@@ -331,11 +343,25 @@ class Graphics:
 
     def enemy_sprite_size_calculator(self):
         self.a = ((2.3 * self.win_size[1]) / (self.enemy.distance_to_player))
-        self.A_texture_scaled = pg.transform.scale(self.A_texture, (self.A_texture.get_width() * self.a, self.A_texture.get_height() * self.a))
+        self.A_texture_scaled = pg.transform.scale(self.A_texture, (self.A_texture_size[0] * self.a, self.A_texture_size[1] * self.a))
         self.A_texture_dimension = self.A_texture_scaled.get_rect().size
         self.A_texture_dimension_half = ((self.A_texture_dimension[0] / 2), (self.A_texture_dimension[1] / 2))
 
-            
+    def draw_chase_texture(self):
+        self.b = max(0, min(90, (170 - self.enemy.distance_to_player) * (90 / 170))) * 2
+        if self.b > 90:
+            self.b = 90
+        self.chase_image_clone = self.chase_image.copy()
+        self.chase_image_scaled = pg.transform.scale(self.chase_image_clone, (self.chase_image.get_width() * 25, self.chase_image.get_height() * 19))
+        self.chase_image_scaled.fill((255, 255, 255, self.b), None, pg.BLEND_RGBA_MULT)
+        self.window.blit(self.chase_image_scaled, (0, 0))    
+
+        f = 5
+        self.c = max(0, min(f, (170 - self.enemy.distance_to_player) * (f / 170)))
+        print(self.c)
+        if self.c > f:
+            self.c = f
+        self.heartbeat_audio.set_volume(self.c)      
 
 '''
             item = self.player.points[i]
@@ -345,6 +371,7 @@ class Graphics:
 '''
 
     #def render_ceiling
+
 
 class Enemy:
     def __init__(self, minimap) -> None:
@@ -418,7 +445,7 @@ class Enemy:
         grid = Grid(matrix= matrix) 
 
         start = grid.node(0, 0)
-        end = grid.node(26, 20)
+        end = grid.node(1, 20)
 
         #end = grid.node(26, 20)
 

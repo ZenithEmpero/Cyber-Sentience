@@ -62,6 +62,9 @@ class Main:
         self.minimap.draw_nodes()
 
         self.minimap.enemy.draw()
+
+        self.minimap.grahics.draw_chase_texture()
+
         self.window.blit(self.image, (200, 150))
 
     def run(self):
