@@ -13,12 +13,12 @@ FPS = 60
 bg_color = 'black'
 
 # PLAYER SETTINGS
-player_speed = 1
+player_speed = 1.3 #1
 mouse_sensitivity= .1
 ray_length = 500
 
 num_rays = 180
-player_fov = 50
+player_fov = 50 #40 #45
 cone_angle = player_fov * (m.pi / 180)
 fov_length = 500
 
@@ -27,3 +27,4 @@ ray_color = 'green'
 rect_collision_color = (93, 232, 244)
 
 # GRAPHICS SETTINGS
+WALL_SIZE = 40

@@ -21,11 +21,17 @@ class Main:
 
         self.minimap = Minimap(self)
 
+        self.image = pg.image.load('textures/sample_png.png')
+        width = self.image.get_rect().width
+        height = self.image.get_rect().height
+        self.image = pg.transform.scale(self.image, (width/10, height/10))
+
     def new_game(self, ws):
         self.window = pg.display.set_mode(ws, flags=pg.RESIZABLE)
 
     def update(self):
         self.delta_time = self.clock.tick(FPS)
+
         self.mousepos = pg.mouse.get_pos()
         self.mouse_rel = pg.mouse.get_rel()
         pg.display.set_caption(f'FPS: [{int(self.clock.get_fps())}]       x: [{self.mousepos[0]}]  y: [{self.mousepos[1]}] {self.mouse_rel}')
@@ -33,7 +39,6 @@ class Main:
         self.draw()
         pg.display.flip()
         
-
     def check_events(self):
         for events in pg.event.get():
             if events.type == pg.QUIT:
@@ -52,7 +57,15 @@ class Main:
     def draw(self):
         self.window.fill(bg_color)        
         self.minimap.draw()
-        self.minimap.grahics.render()
+        self.minimap.grahics.render_walls()
+        self.minimap.draw_line_wall()
+        self.minimap.draw_nodes()
+
+        self.minimap.enemy.draw()
+
+        self.minimap.grahics.draw_chase_texture()
+
+        self.window.blit(self.image, (200, 150))
 
     def run(self):
         while True:
