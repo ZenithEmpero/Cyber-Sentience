@@ -19,7 +19,7 @@ class Main:
         Thread(target= self.new_game(self.window_size)).start()
         Thread(target= sec_win).start()
 
-        self.minimap = Minimap(self)
+        self.body = Body(self)
 
         self.image = pg.image.load('textures/sample_png.png')
         width = self.image.get_rect().width
@@ -56,14 +56,14 @@ class Main:
 
     def draw(self):
         self.window.fill(bg_color)        
-        self.minimap.draw()
-        self.minimap.grahics.render_walls()
-        self.minimap.draw_line_wall()
-        self.minimap.draw_nodes()
+        self.body.draw()
+        self.body.grahics.render_walls()
+        self.body.draw_line_wall()
+        self.body.draw_nodes()
 
-        self.minimap.enemy.draw()
+        self.body.enemy.draw()
 
-        self.minimap.grahics.draw_chase_texture()
+        self.body.grahics.draw_chase_texture()
 
         self.window.blit(self.image, (200, 150))
 

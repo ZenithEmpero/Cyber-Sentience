@@ -8,9 +8,9 @@ from threading import Thread
 import pygame as pg, math as m, random as r
 import sys
 
-pg.mixer.init()
+pg.mixer.init(buffer=1024)
 
-class Minimap:
+class Body:
     def __init__(self, game) -> None:
         self.game = game
         self.window = game.window
@@ -29,6 +29,8 @@ class Minimap:
             x += 1
         self.SCB = SCB
 
+        self.all_sprites = pg.sprite.Group()
+
     def draw(self):
     
         #self.draw_line_wall()
@@ -44,7 +46,7 @@ class Minimap:
                 for i in a:
                     pg.draw.aaline(self.window, wall_color, (i[0], i[1]), (i[2], i[3]))
         except:
-            print('MINIMAP ERROR')
+            print('body ERROR')
 
         for a in rect_walls:
             pg.draw.rect(self.window, rect_collision_color, a)
@@ -60,16 +62,17 @@ class Minimap:
             for i in nodes:
                 pg.draw.circle(self.window, 'yellow', i, 5)
         except:
-            pass'''
+            pass
+'''
 
 class Player:
     
-    def __init__(self, minimap):
+    def __init__(self, body):
         self.walls = []
-        self.minimap = minimap
-        self.game = self.minimap.game
+        self.body = body
+        self.game = self.body.game
         self.window = self.game.window
-        self.enemy = self.minimap.enemy
+        self.enemy = self.body.enemy
         self.alive = True
         self.player_pos = [35, 20]
         self.angle = 0
@@ -95,6 +98,8 @@ class Player:
         self.movement()
 
         self.check_intersection()
+
+        self.enemy_vision()
 
     def draw_ray(self):
         win = self.window
@@ -160,7 +165,7 @@ class Player:
         self.collision_checker(dx, dy)
 
     def collision_checker(self, dx, dy):
-        for i in self.game.minimap.vertical_collision:
+        for i in self.game.body.vertical_collision:
             if pg.Rect.colliderect(self.player_rect_collision, i):
                 self.player_pos[0] -= dx
                 if self.player_pos[0] > i[0]:
@@ -168,7 +173,7 @@ class Player:
                 elif self.player_pos[0] < i[0]:
                     self.player_pos[0] -= .1
 
-        for i in self.game.minimap.horizontal_collision:
+        for i in self.game.body.horizontal_collision:
             if pg.Rect.colliderect(self.player_rect_collision, i):
                 self.player_pos[1] -= dy
                 if self.player_pos[1] > i[1]:
@@ -222,6 +227,8 @@ class Player:
                     num_of_intersections += 1
 
 
+                
+
 
             if len(self.intersection_points) > 0:
                 z = self.check_nearest_point()
@@ -263,10 +270,41 @@ class Player:
             pass
             #print(len(enemy_box_intersection_points)/2)
 
-            
+        self.enemy_ray_intersection_points = []
+        for i in self.walls:
+            x1 = i[0]
+            y1 = i[1]
+            x2 = i[2]
+            y2 = i[3]
+            x3 = self.player_pos[0]
+            y3 = self.player_pos[1]
+            x4 = self.enemy_end_pos[0]
+            y4 = self.enemy_end_pos[1]
 
-            
+            self.t_num = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
+            self.u_num = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
+            self.den = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+            if self.den == 0:
+                return
+            self.t = (self.t_num / self.den)    
+            self.u = self.u_num / self.den
+            self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
+            if (0 < self.t) and (self.t < 1) and (1 > self.u > 0):
+                self.enemy_ray_intersection_points.append(self.point_of_intersection)
 
+                point_dis = {}
+                for i in self.enemy_ray_intersection_points:
+                    x1 = self.player_pos[0]
+                    y1 = self.player_pos[1]
+                    x2 = i[0]
+                    y2 = i[1]
+        
+                    dif = (x1 - x2, y1 - y2)
+                    pyth = m.sqrt((dif[0] ** 2 + dif[1] ** 2))
+                    point_dis[pyth] = (x2, y2)
+                point_dis = sorted(point_dis.items())
+                self.enemy_ray_point = point_dis[0][1]
+  
     def check_nearest_point(self):
         point_dis = {}
         if len(self.intersection_points) > 0:
@@ -285,12 +323,28 @@ class Player:
             #self.points[x] = None
             return x
         
+    def enemy_vision(self):
+        for i in range(num_rays):
+            # Calculate the angle between player and enemy
+            self.enemy_pos = self.enemy.coordinate
+            angle = m.atan2(self.enemy_pos[1] - self.player_pos[1], self.enemy_pos[0] - self.player_pos[0])
+            #angle = m.radians(angle)
+
+            self.enemy_end_x = self.player_pos[0] + enemy_ray_length * m.cos(angle)
+            self.enemy_end_y = self.player_pos[1] + enemy_ray_length * m.sin(angle)
+            self.enemy_end_pos = self.enemy_end_x, self.enemy_end_y
+
+            try:
+                pg.draw.aaline(self.window, 'white', self.player_pos, self.enemy_ray_point)
+            except:
+                pass
+
 class Graphics:
-    def __init__(self, minimap):
+    def __init__(self, body):
         self.wall_texture = pg.image.load('textures/wall.jpg')
-        self.window = minimap.window
-        self.player = minimap.player
-        self.enemy = minimap.enemy
+        self.window = body.window
+        self.player = body.player
+        self.enemy = body.enemy
         self.win_size = pg.display.get_window_size()
 
         self.A_texture = pg.image.load('textures/A.png')
@@ -304,20 +358,21 @@ class Graphics:
         
         
         self.heartbeat_audio = pg.mixer.Sound('audio/heart_beat.mp3')
+        self.tv_static_audio = pg.mixer.Sound('audio/tv_static.wav')
+        self.ambience = pg.mixer.Sound('audio/ambience.wav')
+
         self.heartbeat_audio.set_volume(0)
         self.heartbeat_audio.play(loops=-1)
         
-        self.tv_static_audio = pg.mixer.Sound('audio/tv_static.wav')
+        
         self.tv_static_audio.set_volume(0)
         self.tv_static_audio.play(loops=-1)
 
-        self.ambience = pg.mixer.Sound('audio/ambience.wav')
+        
         self.ambience.set_volume(.3)
         self.ambience.play(loops=-1)
 
-        self.footsteps = pg.mixer.Sound('audio/footsteps.wav')
-        self.footsteps.set_volume(1)
-        self.footsteps.play(loops=-1)
+        
 
     def render_walls(self):
         self.vertical_angle = self.player.vertical_angle
@@ -414,11 +469,11 @@ class Graphics:
 
 
 class Enemy:
-    def __init__(self, minimap) -> None:
+    def __init__(self, body) -> None:
         self.entity = 0
-        self.minimap = minimap
-        self.game = minimap.game
-        self.window = minimap.window
+        self.body = body
+        self.game = body.game
+        self.window = body.window
         self.coordinate = (800, 600)
         self.line1 = (0, 0), (0, 0)
         self.line2 = (0, 0), (0, 0)
@@ -492,7 +547,7 @@ class Enemy:
         end = grid.node(x2, y2)
         self.last_node = (x2, y2)
 
-        finder = AStarFinder(diagonal_movement= DiagonalMovement.always)
+        finder = AStarFinder() #diagonal_movement= DiagonalMovement.always
 
         self.path, runs = finder.find_path(start, end, grid)
 
@@ -519,7 +574,8 @@ class Enemy:
         #self.pos_nodes.pop(0)
     
     def distance_to_player_checker(self):
-        self.player_pos = self.minimap.player.player_pos
+        self.player_pos = self.body.player.player_pos
         x = round(self.player_pos[0] - self.coordinate[0], 2)
         y = round(self.player_pos[1] - self.coordinate[1], 2)
         self.distance_to_player = round(m.sqrt(x**2 + y**2), 2) # HYPOTENUSE FORMULA
+        #print(self.distance_to_player)
