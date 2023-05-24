@@ -3,10 +3,7 @@ from settings import *
 from dev_win import *
 from pathfinding.core.grid import *
 from pathfinding.finder.a_star import AStarFinder
-from pathfinding.core.diagonal_movement import DiagonalMovement
-from threading import Thread
 import pygame as pg, math as m, random as r
-import sys
 
 pg.mixer.init(buffer=1024)
 
@@ -17,19 +14,11 @@ class Body:
         self.enemy = Enemy(self)
         self.player = Player(self)
         self.grahics = Graphics(self)
-        self.vertical_collision = []
-        self.horizontal_collision = []
+        self.vertical_collision = vertical_collision
+        self.horizontal_collision = horizontal_collision
 
-        x = 0
-        for i in rect_walls:
-            if x % 2 == 0:
-                self.vertical_collision.append(i)
-            else:
-                self.horizontal_collision.append(i)
-            x += 1
         self.SCB = SCB
-
-        self.all_sprites = pg.sprite.Group()
+        print(self.horizontal_collision, self.vertical_collision)
 
     def draw(self):
     
@@ -50,6 +39,8 @@ class Body:
 
         for a in rect_walls:
             pg.draw.rect(self.window, rect_collision_color, a)
+        for a in doors:
+            pg.draw.aaline(self.window, 'brown', (a[0], a[1]), (a[2], a[3]))
 
 
     def draw_nodes(self):
@@ -68,7 +59,7 @@ class Body:
 class Player:
     
     def __init__(self, body):
-        self.walls = []
+        self.walls = {}
         self.body = body
         self.game = self.body.game
         self.window = self.game.window
@@ -81,10 +72,13 @@ class Player:
         self.middle_point = 0
         self.point_len = 0
         self.points = []
+        self.seen_by_enemy = False
 
         for i in line_walls:
             for a in i:
-                self.walls.append(a)
+                self.walls[a] = 'w'
+        for i in doors:
+            self.walls[i] = 'b'
 
 
     def draw(self):
@@ -195,13 +189,13 @@ class Player:
             self.multiple_rays_pos.append(end_point)
 
     def check_intersection(self):
-        self.points = []
+        self.points = {}
         enemy_box_intersection_points = []
         for a in self.multiple_rays_pos:
             
  
 
-            self.intersection_points = []
+            self.intersection_points = {}
             num_of_intersections = 0
             for i in self.walls:
                 x1 = i[0]
@@ -213,35 +207,34 @@ class Player:
                 x4 = a[0]
                 y4 = a[1]
 
-                self.t_num = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
-                self.u_num = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
-                self.den = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
-                if self.den == 0:
+                t_num= ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
+                u_num = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
+                den = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+                if den == 0:
                     return
-                self.t = (self.t_num / self.den)    
-                self.u = self.u_num / self.den
+                self.t = (t_num/ den)    
+                self.u = u_num / den
                 self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
                 if (0 < self.t) and (self.t < 1) and (1 > self.u > 0):
-                    self.intersection_points.append(self.point_of_intersection)
+                    self.intersection_points[self.point_of_intersection] = self.walls[i]
                     
                     num_of_intersections += 1
 
-
-                
-
-
             if len(self.intersection_points) > 0:
                 z = self.check_nearest_point()
-                self.points.append(z)
+                x = z[0]
+                y = z[1]
+                self.points[x] = y
             else:
                 #pg.draw.aaline(self.window, ray_color, self.player_pos, a)
-                self.points.append(a)
+                self.points[a] = None
+
 
         
         for a in self.points:
-            x = self.enemy.line1, self.enemy.line2
+            self.enemy_render_box = self.enemy.line1, self.enemy.line2
             
-            for i in x:
+            for i in self.enemy_render_box:
                 x1 = i[0][0]
                 y1 = i[0][1]
                 x2 = i[1][0]
@@ -251,13 +244,13 @@ class Player:
                 x4 = a[0]
                 y4 = a[1]
 
-                self.t_num = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
-                self.u_num = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
-                self.den = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
-                if self.den == 0:
+                t_num= ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
+                u_num = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
+                den = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+                if den == 0:
                     return
-                self.t = (self.t_num / self.den)    
-                self.u = self.u_num / self.den
+                self.t = (t_num/ den)    
+                self.u = u_num / den
                 self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
                 if (0 < self.t < 1) and (0 < self.u < 1):
                     enemy_box_intersection_points.append(a)
@@ -281,16 +274,17 @@ class Player:
             x4 = self.enemy_end_pos[0]
             y4 = self.enemy_end_pos[1]
 
-            self.t_num = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
-            self.u_num = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
-            self.den = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
-            if self.den == 0:
+            t_num = self.intersection_formula('t', x1, y1, x2, y2, x3, y3, x4, y4)
+            u_num = self.intersection_formula('u', x1, y1, x2, y2, x3, y3, x4, y4)
+            den = self.intersection_formula('d', x1, y1, x2, y2, x3, y3, x4, y4)
+            if den == 0:
                 return
-            self.t = (self.t_num / self.den)    
-            self.u = self.u_num / self.den
-            self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
-            if (0 < self.t) and (self.t < 1) and (1 > self.u > 0):
-                self.enemy_ray_intersection_points.append(self.point_of_intersection)
+            t = t_num / den   
+            u = u_num / den
+            point_of_intersection = (x1 + t * (x2 - x1)), (y1 + t * (y2 - y1)) 
+
+            if self.check_intersection_conditions(t, u):
+                self.enemy_ray_intersection_points.append(point_of_intersection)
 
                 point_dis = {}
                 for i in self.enemy_ray_intersection_points:
@@ -304,7 +298,46 @@ class Player:
                     point_dis[pyth] = (x2, y2)
                 point_dis = sorted(point_dis.items())
                 self.enemy_ray_point = point_dis[0][1]
-  
+
+        i = self.enemy_render_box[0]
+        x1 = i[0][0]
+        y1 = i[0][1]
+        x2 = i[1][0]
+        y2 = i[1][1]
+        x3 = self.player_pos[0]
+        y3 = self.player_pos[1]
+        x4 = self.enemy_ray_point[0]
+        y4 = self.enemy_ray_point[1]
+
+        t_num = self.intersection_formula('t', x1, y1, x2, y2, x3, y3, x4, y4)
+        u_num = self.intersection_formula('u', x1, y1, x2, y2, x3, y3, x4, y4)
+        den = self.intersection_formula('d', x1, y1, x2, y2, x3, y3, x4, y4)
+        if den == 0:
+            return
+        t = t_num / den
+        u = u_num / den
+
+        if self.check_intersection_conditions(t, u):
+            if not self.seen_by_enemy:
+                self.seen_by_enemy = True
+        else:
+            if self.seen_by_enemy:
+                self.seen_by_enemy = False
+
+    def intersection_formula(self, type, x1, y1, x2, y2, x3, y3, x4, y4):
+        if type == 't':
+            return ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
+        elif type == 'u':
+            return ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
+        elif type == 'd':
+            return ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+
+    def check_intersection_conditions(self, t, u):
+        if (0 < t) and (t < 1) and (1 > u > 0):
+            return True
+        else:
+            return False
+
     def check_nearest_point(self):
         point_dis = {}
         if len(self.intersection_points) > 0:
@@ -316,12 +349,13 @@ class Player:
 
                 dif = (abs(x1 - x2), abs(y1 - y2))
                 pyth = m.sqrt((dif[0])**2 + (dif[1]**2))
-                point_dis[pyth] = (x2, y2)
+                point_dis[pyth] = (x2, y2, self.intersection_points[i])
             point_dis = sorted(point_dis.items())
-            x = point_dis[0][1]
+            x = point_dis[0][1][0], point_dis[0][1][1]
+            color = point_dis[0][1][2]
             #pg.draw.aaline(self.window, ray_color, self.player_pos, x)
             #self.points[x] = None
-            return x
+            return [x, color]
         
     def enemy_vision(self):
         for i in range(num_rays):
@@ -335,9 +369,11 @@ class Player:
             self.enemy_end_pos = self.enemy_end_x, self.enemy_end_y
 
             try:
-                pg.draw.aaline(self.window, 'white', self.player_pos, self.enemy_ray_point)
+                pg.draw.aaline(self.window, 'blue', self.player_pos, self.enemy_ray_point)
             except:
                 pass
+
+
 
 class Graphics:
     def __init__(self, body):
@@ -381,18 +417,28 @@ class Graphics:
         x = 4
         coord = None
         for i in self.player.points:
+            wall_color = self.player.points[i]
             x1 = self.player.player_pos[0]
             y1 = self.player.player_pos[1]
             x2 = i[0]
             y2 = i[1]
 
             dif = (x2 - x1, y2 - y1)
-            angle = (m.degrees(m.atan2(dif[1], dif[0]))) - self.player.angle
+            angle =  (self.player.angle) - (m.degrees(m.atan2(dif[1], dif[0])))
             pyth = m.sqrt(dif[0]**2 + dif[1]**2)
             dis = pyth * m.cos(m.radians(angle))
-            a = ((30 * winsize[1]) / (dis)) #/ 10
+            try:
+                a = ((30 * winsize[1]) / (dis)) #/ 10
+            except:
+                pass
             #a = (50000 / pyth) / 10
-            color = [181, 181, 181]
+
+            if wall_color == 'w':
+                color = [181, 181, 181]
+            elif wall_color == 'b':
+                color = [171, 88, 0]
+            else:
+                color = [0, 0, 0]
             c1 = []
             for b in color:
                 c1.append(b * (1 - (pyth / fov_length)))
@@ -401,7 +447,11 @@ class Graphics:
             g = self.min_and_max(0, 20, 200)
             g = int(g)
             ds = r.randint(0, g)
-            pg.draw.line(self.window, c1, (x, va + a + ds), (x, va - a - ds), 5)
+
+            try:
+                pg.draw.line(self.window, c1, (x, va + a + ds), (x, va - a - ds), 5)
+            except:
+                pass
 
             #except:
                 #pass

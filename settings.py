@@ -13,12 +13,12 @@ FPS = 60
 bg_color = 'black'
 
 # PLAYER SETTINGS
-player_speed = 1 #1
+player_speed = 3 #1
 mouse_sensitivity= .1
 ray_length = 500
 
 num_rays = 180
-player_fov = 60 #40 #45
+player_fov = 67 #40 #45
 #cone_angle = player_fov * (m.pi / 180)
 fov_length = 500
 
@@ -27,7 +27,7 @@ ray_color = 'green'
 rect_collision_color = (93, 232, 244)
 
 # ENEMY SETTINGS
-enemy_speed = 3
+enemy_speed = .3
 enemy_ray_length = 500
 enemy_ray_angle = m.radians(0)
 
