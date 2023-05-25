@@ -571,10 +571,9 @@ class Enemy:
             
 
         else:
-            self.path_finished()
+            self.create_path()
 
     def check_if_des(self):
-        print(self.target_node, self.go_to_seen_pos)
         if not self.go_to_seen_pos:
             condition = abs(self.coordinate[0] - self.target_node[0]) < 3 and abs(self.coordinate[1] - self.target_node[1]) < 3
         else:
@@ -585,13 +584,10 @@ class Enemy:
                 return True
             else:
                 self.go_to_seen_pos = False
-                self.path_finished()
+                self.create_path_2()
                 return True
         else: 
             return False
-        
-        
-
 
     def path_gen(self, x1, y1, x2, y2):
         grid = Grid(matrix= matrix) 
@@ -606,11 +602,23 @@ class Enemy:
 
         self.pos_node()
 
-    def path_finished(self):
+    def create_path(self):
+        print('create path 1')
         while True:
             if self.random_node_picker():
                 break
+                
         self.path_gen(self.last_node[0], self.last_node[1], self.matrix_x, self.matrix_y)
+
+    def create_path_2(self):
+        print('create path 2')
+        while True:
+            if self.random_node_picker():
+                break
+        self.random_start_node_picker()
+
+        self.path_gen(self.pyths[0][1][0], self.pyths[0][1][1], self.matrix_x, self.matrix_y)
+
 
     def random_node_picker(self):
         self.matrix_x = r.randint(0, column_lenght - 1)
@@ -619,6 +627,16 @@ class Enemy:
             return True
         else:
             return False
+        
+    def random_start_node_picker(self):
+        self.pyths = {}
+        for i in nodes:
+            diff = (self.coordinate[0] - nodes[i][0]), (self.coordinate[1] - nodes[i][1])
+            pyth = m.sqrt(diff[0] ** 2 + diff[1] ** 2)
+            self.pyths[pyth] = (i[0], i[1])
+        print(len(self.pyths))
+        self.pyths = sorted(self.pyths.items())
+        print(f'Pyths Length: [{len(self.pyths)}]')
 
     def pos_node(self):
         self.pos_nodes = []

@@ -113,11 +113,11 @@ matrix = [[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 
 
 #x = 36
 #y = 25
-
+num_of_1 = 0
 row_length = len(matrix)
 column_lenght = len(matrix[0])
 
-nodes = []
+nodes = {}
 
 y_dif = HEIGHT / len(matrix)
 x_dif =  WIDTH / len(matrix[0])
@@ -125,13 +125,21 @@ x_dif =  WIDTH / len(matrix[0])
 additional_grid_value = 12
 x = additional_grid_value
 y = additional_grid_value
+
+r = -1
 for row in matrix:
+    r += 1
+
+    s = -1
     for i in row:
+        s += 1
         if i != 0:
-            nodes.append((x, y))
+            num_of_1 += 1
+            nodes[(s, r)] = (x, y)
         x += x_dif
     y += y_dif
     x = additional_grid_value
 
 print(f'Number of Rows: [{len(matrix)}]')
 print(f'Number of Columns: [{len(matrix[0])}]')
+print(f'Number of 1\'s: [{num_of_1}]')
