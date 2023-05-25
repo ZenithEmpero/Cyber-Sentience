@@ -508,15 +508,6 @@ class Graphics:
         x = max(a, min(b, (c - self.enemy.distance_to_player) * (b / c)))
         return x
 
-'''
-            item = self.player.points[i]
-            if item == 'Enemy':
-                pg.draw.circle(self.window, 'red', (x, va), 100)
-
-'''
-
-    #def render_ceiling
-
 
 class Enemy:
     def __init__(self, body) -> None:
@@ -531,11 +522,15 @@ class Enemy:
         self.last_node = (0, 0)
         self.path_gen(35, 24, 35, 24)
 
-        
+        # FLAGS
+        self.go_to_seen_pos = False
+
     def draw(self):
+        self.check_if_see_player()
         self.draw_render_box()
-        self.movement()
         self.distance_to_player_checker()
+        self.movement()
+
 
     def draw_render_box(self):
         self.render_box = [(self.coordinate[0] - 10, self.coordinate[1] - 10), (self.coordinate[0] + 10, self.coordinate[1] + 10)]
@@ -547,26 +542,23 @@ class Enemy:
     def movement(self):
         if len(self.pos_nodes) > 0:
             self.speed = (enemy_speed/30) * self.game.delta_time
-            
-            #for i in self.pos_nodes:
-            self.at_des = False
-            self.target_node = self.pos_nodes[0]
+
+            if not self.go_to_seen_pos:
+                self.target_node = self.pos_nodes[0]
+                if self.check_if_des():
+                    self.pos_nodes.pop(0)
+            else:
+                
+                if self.see_player:
+                    self.pos_nodes = self.player_pos[0], self.player_pos[1]
+                    self.target_node = self.pos_nodes[0], self.pos_nodes[1]
+                self.check_if_des()
+
             targ_coor = self.target_node
-                #while True:
             epos = self.coordinate
             x = epos[0]
             y = epos[1]
-            '''
-            if targ_coor[0] < epos[0]:
-                x = epos[0] - self.speed
-            elif targ_coor[0] > epos[0]:
-                x = epos[0] + self.speed
 
-            if targ_coor[1] < epos[1]:
-                y = epos[1] - self.speed
-            elif targ_coor[1] > epos[1]:
-                y = epos[1] + self.speed'''
-            
             dx = targ_coor[0] - epos[0]
             dy = targ_coor[1] - epos[1]
 
@@ -577,18 +569,29 @@ class Enemy:
             
             self.coordinate = (x, y)
             
-            if self.check_if_des():
-                self.pos_nodes.pop(0)
 
         else:
             self.path_finished()
 
     def check_if_des(self):
-        if abs(self.coordinate[0] - self.target_node[0]) < 3 and abs(self.coordinate[1] - self.target_node[1]) < 3:
-            #self.pos_nodes.pop(0)
-            return True
+        print(self.target_node, self.go_to_seen_pos)
+        if not self.go_to_seen_pos:
+            condition = abs(self.coordinate[0] - self.target_node[0]) < 3 and abs(self.coordinate[1] - self.target_node[1]) < 3
+        else:
+            condition = abs(self.coordinate[0] - self.target_node[0]) < 3 and abs(self.coordinate[1] - self.target_node[1]) < 3
+        if condition:
+            if not self.go_to_seen_pos:
+                
+                return True
+            else:
+                self.go_to_seen_pos = False
+                self.path_finished()
+                return True
         else: 
             return False
+        
+        
+
 
     def path_gen(self, x1, y1, x2, y2):
         grid = Grid(matrix= matrix) 
@@ -629,3 +632,8 @@ class Enemy:
         y = round(self.player_pos[1] - self.coordinate[1], 2)
         self.distance_to_player = round(m.sqrt(x**2 + y**2), 2) # HYPOTENUSE FORMULA
         #print(self.distance_to_player)
+
+    def check_if_see_player(self):
+        self.see_player =  self.body.player.seen_by_enemy
+        if self.see_player:
+            self.go_to_seen_pos = True
