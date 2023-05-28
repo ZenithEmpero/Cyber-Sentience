@@ -21,7 +21,7 @@ class Menu:
         pos = (WIDTH/2, HEIGHT*.1)
         font_size = 75
         text = 'Cyber Sentience 2203'
-        self.title_text = Text(self, text, self.av_font, font_size, color, pos, static= True, cs=True, clickable=False)
+        self.title_text = Text(self, text, self.av_font, font_size, color, pos, static= True, cs=True, clickable=False, static_range=(50, 20), static_chance=(80, 4))
 
 
         # Start Text
@@ -29,17 +29,17 @@ class Menu:
         pos = (WIDTH/2, HEIGHT*.4)
         font_size = 40
         text = 'Start'
-        self.start_text = Text(self, text, self.tvd_font, font_size, color, pos, False, True, clickable=True)
+        self.start_text = Text(self, text, self.tvd_font, font_size, color, pos, False, True, clickable=True, static_range=None, static_chance=(80, 4))
         
         # Settings Text
         pos = (WIDTH/2, HEIGHT*.55)
         text = 'Settings'
-        self.settings_text = Text(self, text, self.tvd_font, font_size, color, pos, False, True, clickable=True)
+        self.settings_text = Text(self, text, self.tvd_font, font_size, color, pos, False, True, clickable=True, static_range=None, static_chance=(80, 4))
 
         # Exit Text
         pos = (WIDTH/2, HEIGHT*.7)
         text = 'Exit'
-        self.exit_text = Text(self, text, self.tvd_font, font_size, color, pos, True, True, clickable=True)
+        self.exit_text = Text(self, text, self.tvd_font, font_size, color, pos, True, True, clickable=True, static_range=(30, 15), static_chance=(25, 4))
         
 
 
@@ -79,7 +79,7 @@ class Menu:
 
 
 class Text:
-    def __init__(self, menu, text, font, fontsize, color, pos, static, cs, clickable) -> None:
+    def __init__(self, menu, text, font, fontsize, color, pos, static, cs, clickable, static_range, static_chance) -> None:
         self.menu = menu
         self.window = menu.window
         self.text_data = text
@@ -96,6 +96,8 @@ class Text:
         self.clickable = clickable
         self.in_rect = False
         self.clicked = False
+        self.static_range = static_range
+        self.static_chance = static_chance
 
     def update(self):
         #pg.draw.rect(self.window, 'green', self.text_rect)
@@ -107,15 +109,15 @@ class Text:
     def display(self):
         pos = self.pos[0], self.pos[1]
         if self.static:
-            if r.randint(0, 80) == 50:
-                pos = self.pos[0] + r.randint(-50, 50), self.pos[1]
-                if r.randint(0, 4) == 3:
-                    pos = pos[0], pos[1] + r.randint(-20, 20)
+            if r.randint(0, self.static_chance[0]) == 1:
+                pos = self.pos[0] + r.randint(-self.static_range[0], self.static_range[0]), self.pos[1]
+                if r.randint(0, self.static_chance[1]) == 1:
+                    pos = pos[0], pos[1] + r.randint(-self.static_range[1], self.static_range[1])
 
         color = self.color
         self.text = self.font.render(self.text_data, False, color)
         if self.color_static:
-            if r.randint(0, 10) == 4:
+            if r.randint(0, 10) == 1:
                 color = r.randint(self.color[0] - self.color_deduction, self.color[0])
                 color = (color, color, color)
                 self.text = self.font.render(self.text_data, False, color)
