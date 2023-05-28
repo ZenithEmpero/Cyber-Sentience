@@ -1,6 +1,5 @@
 from map_data import *
 from settings import *
-from dev_win import *
 from pathfinding.core.grid import *
 from pathfinding.finder.a_star import AStarFinder
 import pygame as pg, math as m, random as r
@@ -13,7 +12,8 @@ class Body:
         self.window = game.window
         self.enemy = Enemy(self)
         self.player = Player(self)
-        self.grahics = Graphics(self)
+        self.graphics = Graphics(self)
+        self.ui = UI(self)
         self.vertical_collision = vertical_collision
         self.horizontal_collision = horizontal_collision
 
@@ -55,7 +55,28 @@ class Body:
         except:
             pass
 '''
+class UI:
+    def __init__(self, body) -> None:
+        self.body = body
+        self.game = body.game
+        self.window = body.window
 
+        self.jumpscare_img = pg.image.load('textures/A_jumpscare.png')
+        x = 5
+        self.jumpscare_img = pg.transform.scale(self.jumpscare_img, (self.jumpscare_img.get_width() * x, self.jumpscare_img.get_height() * x))
+        self.pos = r.randint(160, 640) - self.jumpscare_img.get_width()/2, r.randint(-50, 20)
+
+        # Flag
+
+    def update(self):
+        self.draw()
+
+    def draw(self):
+        self.jumpscare()
+
+    def jumpscare(self):
+        if not self.body.player.alive:
+            self.window.blit(self.jumpscare_img, (self.pos))
 class Player:
     
     def __init__(self, body):
@@ -65,6 +86,7 @@ class Player:
         self.window = self.game.window
         self.enemy = self.body.enemy
         self.alive = True
+        self.stamina = 100
         self.player_pos = [35, 20]
         self.angle = 0
         
@@ -73,6 +95,8 @@ class Player:
         self.point_len = 0
         self.points = []
         self.seen_by_enemy = False
+        self.game_over = False
+        self.return_to_menu_delay = 0
 
         for i in line_walls:
             for a in i:
@@ -86,14 +110,16 @@ class Player:
         self.draw_ray()
 
         self.player_rect_collision = pg.Rect(self.player_pos[0] - 10, self.player_pos[1] - 10, 20, 20)
-        pg.draw.rect(self.window, rect_collision_color, self.player_rect_collision)
+        #pg.draw.rect(self.window, rect_collision_color, self.player_rect_collision)
 
-        self.player_circle = pg.draw.circle(win, 'white', self.player_pos, 10)
-        self.movement()
+        #self.player_circle = pg.draw.circle(win, 'white', self.player_pos, 10)
+        if self.alive:
+            self.movement()
 
         self.check_intersection()
 
         self.enemy_vision()
+        self.return_to_menu()
 
     def draw_ray(self):
         win = self.window
@@ -106,29 +132,30 @@ class Player:
         self.cast_multiple_rays()
 
     def turn(self):
-        if self.game.window_selected:
-            mouse_rel = self.game.mouse_rel
-            mouse_pos = self.game.mousepos
-            win_size = pg.display.get_window_size()
-            if mouse_rel[0] != 0:
-                self.angle += (mouse_rel[0] * mouse_sensitivity)
-            if mouse_rel[1] != 0:
-                if self.vertical_angle < (win_size[1] * .8):
-                    if mouse_rel[1] > 0:
-                        pass
-                    else:
-                        self.vertical_angle -= ((mouse_rel[1] * 10) * mouse_sensitivity)   
+        if self.alive:
+            if self.game.window_selected:
+                mouse_rel = self.game.mouse_rel
+                mouse_pos = self.game.mousepos
+                win_size = pg.display.get_window_size()
+                if mouse_rel[0] != 0:
+                    self.angle += (mouse_rel[0] * mouse_sensitivity)
+                if mouse_rel[1] != 0:
+                    if self.vertical_angle < (win_size[1] * .8):
+                        if mouse_rel[1] > 0:
+                            pass
+                        else:
+                            self.vertical_angle -= ((mouse_rel[1] * 10) * mouse_sensitivity)   
 
-                if self.vertical_angle > (win_size[1] * .2):
-                    if mouse_rel[1] < 0:
-                        pass
-                    else:
-                        self.vertical_angle -= ((mouse_rel[1] * 10) * mouse_sensitivity) 
-            
-            if (mouse_pos[0] > (WIDTH - 200)) or (mouse_pos[0] < 200) or (mouse_pos[1] > (HEIGHT - 200)) or (mouse_pos[1] < 200):
-                pg.mouse.set_pos(WIDTH/2, HEIGHT/2)
+                    if self.vertical_angle > (win_size[1] * .2):
+                        if mouse_rel[1] < 0:
+                            pass
+                        else:
+                            self.vertical_angle -= ((mouse_rel[1] * 10) * mouse_sensitivity) 
+                
+                if (mouse_pos[0] > (WIDTH - 200)) or (mouse_pos[0] < 200) or (mouse_pos[1] > (HEIGHT - 200)) or (mouse_pos[1] < 200):
+                    pg.mouse.set_pos(WIDTH/2, HEIGHT/2)
 
-            #pg.mouse.set_pos(WIDTH/2, HEIGHT/2)
+                #pg.mouse.set_pos(WIDTH/2, HEIGHT/2)
 
     def movement(self):
         speed = (player_speed / 30) * self.game.delta_time
@@ -174,13 +201,21 @@ class Player:
                     self.player_pos[1] += .1
                 elif self.player_pos[1] < i[1]:
                     self.player_pos[1] -= .1
+
+        if self.player_rect_collision.collidepoint(self.enemy.enemy_coordinate):
+            if not self.game_over:
+                self.fgame_over()
+    
     def min_and_max(self, a, b, c):
         x = max(a, min(b, (c - self.enemy.distance_to_player) * (b / c)))
         return x
 
     def cast_multiple_rays(self):
         self.multiple_rays_pos = []
-        pf = player_fov + self.min_and_max(0, 45, 170)
+        if self.alive:
+            pf = player_fov + self.min_and_max(0, 45, 170)
+        else:
+            pf = player_fov
         cone_angle = pf * (m.pi / 180)
         for i in range(num_rays):
             angle = m.radians(self.angle) + (i - num_rays / 2) * cone_angle / num_rays
@@ -360,12 +395,12 @@ class Player:
     def enemy_vision(self):
         for i in range(num_rays):
             # Calculate the angle between player and enemy
-            self.enemy_pos = self.enemy.coordinate
-            angle = m.atan2(self.enemy_pos[1] - self.player_pos[1], self.enemy_pos[0] - self.player_pos[0])
+            self.enemy_pos = self.enemy.enemy_coordinate[0], self.enemy.enemy_coordinate[1]
+            self.enemy_angle = m.atan2(self.enemy_pos[1] - self.player_pos[1], self.enemy_pos[0] - self.player_pos[0])
             #angle = m.radians(angle)
 
-            self.enemy_end_x = self.player_pos[0] + enemy_ray_length * m.cos(angle)
-            self.enemy_end_y = self.player_pos[1] + enemy_ray_length * m.sin(angle)
+            self.enemy_end_x = self.player_pos[0] + enemy_ray_length * m.cos(self.enemy_angle)
+            self.enemy_end_y = self.player_pos[1] + enemy_ray_length * m.sin(self.enemy_angle)
             self.enemy_end_pos = self.enemy_end_x, self.enemy_end_y
 
             try:
@@ -373,17 +408,31 @@ class Player:
             except:
                 pass
 
+    def fgame_over(self):
+        self.alive = False
+        self.game_over = True
+        self.angle = m.degrees(self.enemy_angle)
+        self.body.graphics.jumpscare.play()
 
-
+    def return_to_menu(self):
+        if not self.alive:
+            if self.return_to_menu_delay < 25:
+                self.return_to_menu_delay += .01 * self.game.delta_time
+            else:
+                self.game.menu.running = True
+                pg.mouse.set_visible(True)
 class Graphics:
     def __init__(self, body):
         self.wall_texture = pg.image.load('textures/wall.jpg')
         self.window = body.window
         self.player = body.player
+        self.body = body
         self.enemy = body.enemy
         self.win_size = pg.display.get_window_size()
+        self.fog = 1
+        self.or_fog = self.fog
 
-        self.A_texture = pg.image.load('textures/A.png')
+        self.A_texture = pg.image.load('textures/A.v2.png')
         self.A_texture_size = self.A_texture.get_width(), self.A_texture.get_height()
         
         #self.chase_image = pg.image.load('textures/chase_image.jpg').convert_alpha()
@@ -391,22 +440,24 @@ class Graphics:
         self.transparent_surface = pg.Surface((self.win_size[0], self.win_size[1]), pg.SRCALPHA)
 
         #AUDIO
-        
-        
         self.heartbeat_audio = pg.mixer.Sound('audio/heart_beat.mp3')
         self.tv_static_audio = pg.mixer.Sound('audio/tv_static.wav')
         self.ambience = pg.mixer.Sound('audio/ambience.wav')
+        self.jumpscare = pg.mixer.Sound('audio/jumpscare.wav')
+        self.jumpscare.set_volume(.7)
 
         self.heartbeat_audio.set_volume(0)
         self.heartbeat_audio.play(loops=-1)
         
-        
         self.tv_static_audio.set_volume(0)
         self.tv_static_audio.play(loops=-1)
 
-        
         self.ambience.set_volume(.3)
         self.ambience.play(loops=-1)
+
+        # Flags
+        self.fog_increased = False
+        self.fog_delay = 0
 
         
 
@@ -440,13 +491,24 @@ class Graphics:
             else:
                 color = [0, 0, 0]
             c1 = []
+
             for b in color:
-                c1.append(b * (1 - (pyth / fov_length)))
+                c1.append(b * (self.fog - (pyth / fov_length)))
+
+            if not self.player.alive:
+                if self.fog_delay < 100:
+                    self.fog_delay += .0008 * self.body.game.delta_time
+                else:
+                    if self.fog > 0:
+                        self.fog -= .00001 * self.body.game.delta_time
 
             #try:
             g = self.min_and_max(0, 20, 200)
             g = int(g)
-            ds = r.randint(0, g)
+            if self.player.alive:
+                ds = r.randint(0, g)
+            else:
+                ds = 0
 
             try:
                 pg.draw.line(self.window, c1, (x, va + a + ds), (x, va - a - ds), 5)
@@ -465,97 +527,109 @@ class Graphics:
                     
             x += 4.44
         try:
+            
             self.enemy_sprite_size_calculator()
-            self.window.blit(self.A_texture_scaled, (coord[0] - self.A_texture_dimension_half[0], coord[1] - (self.A_texture_dimension_half[1] - (self.a))))
+            if self.player.alive:
+                self.window.blit(self.A_texture_scaled, (coord[0] - self.A_texture_dimension_half[0], coord[1] - (self.A_texture_dimension_half[1] - (self.a))))
         
         except:
             pass
             #print('Error render_walls()')
 
 
+
     def enemy_sprite_size_calculator(self):
-        self.a = ((2.3 * self.win_size[1]) / (self.enemy.distance_to_player))
-        if self.a > 90:
-            self.a = 90
+        self.a = ((.3 * self.win_size[1]) / (self.enemy.distance_to_player))
+        x = 5
+        if self.a > x:
+            self.a = x
         self.A_texture_scaled = pg.transform.scale(self.A_texture, (self.A_texture_size[0] * self.a, self.A_texture_size[1] * self.a))
         self.A_texture_dimension = self.A_texture_scaled.get_rect().size
         self.A_texture_dimension_half = ((self.A_texture_dimension[0] / 2), (self.A_texture_dimension[1] / 2))
 
     def draw_chase_texture(self):
-        
-        self.b = max(0, min(90, (170 - self.enemy.distance_to_player) * (90 / 170))) * 2
-        if self.b > 90:
-            self.b = 90
-        #self.chase_rect_clone = self.chase_rect.copy()
-        #self.chase_rect_scaled = pg.transform.scale(self.chase_image_clone, (self.chase_image.get_width() * 25, self.chase_image.get_height() * 19))
-        #pg.draw.rect(self.window, (255, 0, 0, self.b), self.chase_rect_clone, pg.BLEND_RGBA_MULT)
-        #self.chase_rect_clone.fill((255, 255, 255, self.b), None, pg.BLEND_RGBA_MULT)
-       # self.window.blit(self.chase_rect_clone, (0, 0))    
-        self.transparent_surface.fill((255, 0, 0, self.b))
-        self.window.blit(self.transparent_surface, (0, 0))
+        if self.player.alive:
+            self.b = max(0, min(90, (170 - self.enemy.distance_to_player) * (90 / 170))) * 2
+            if self.b > 90:
+                self.b = 90
+            #self.chase_rect_clone = self.chase_rect.copy()
+            #self.chase_rect_scaled = pg.transform.scale(self.chase_image_clone, (self.chase_image.get_width() * 25, self.chase_image.get_height() * 19))
+            #pg.draw.rect(self.window, (255, 0, 0, self.b), self.chase_rect_clone, pg.BLEND_RGBA_MULT)
+            #self.chase_rect_clone.fill((255, 255, 255, self.b), None, pg.BLEND_RGBA_MULT)
+        # self.window.blit(self.chase_rect_clone, (0, 0))    
+            self.transparent_surface.fill((255, 0, 0, self.b))
+            self.window.blit(self.transparent_surface, (0, 0))
 
-        f = 1
-        self.c = self.min_and_max(0, f, 250)
-        self.d = self.min_and_max(0, 0.25, 150)
-        #elf.c = max(0, min(f, (170 - self.enemy.distance_to_player) * (f / 170)))
-        #print(self.d)
-        if self.c > f:
-            self.c = f
-        self.heartbeat_audio.set_volume(self.c)
-        self.tv_static_audio.set_volume(self.d)  
+            f = 1
+            self.c = self.min_and_max(0, f, 250)
+            self.d = self.min_and_max(0, 0.25, 150)
+            #elf.c = max(0, min(f, (170 - self.enemy.distance_to_player) * (f / 170)))
+            #print(self.d)
+            if self.c > f:
+                self.c = f
+            self.heartbeat_audio.set_volume(self.c)
+            self.tv_static_audio.set_volume(self.d) 
+        else:
+            self.heartbeat_audio.set_volume(0)
+            self.tv_static_audio.set_volume(0) 
+            self.ambience.set_volume(0)
 
     def min_and_max(self, a, b, c):
         x = max(a, min(b, (c - self.enemy.distance_to_player) * (b / c)))
         return x
-
-
 class Enemy:
     def __init__(self, body) -> None:
         self.entity = 0
         self.body = body
         self.game = body.game
         self.window = body.window
-        self.coordinate = (800, 600)
+        self.enemy_coordinate = (800, 600)
         self.line1 = (0, 0), (0, 0)
         self.line2 = (0, 0), (0, 0)
         self.distance_to_player = 0
         self.last_node = (0, 0)
-        self.path_gen(35, 24, 35, 24)
+        #self.path_gen(35, 24, 35, 24)
+        self.pos_nodes = []
+        self.speed = (enemy_speed/30)
+        self.chase_speed = self.speed * 2
+        self.speed_using = self.speed
 
         # FLAGS
         self.go_to_seen_pos = False
 
     def draw(self):
-        self.check_if_see_player()
-        self.draw_render_box()
-        self.distance_to_player_checker()
-        self.movement()
-
+        if self.body.player.alive:
+            self.check_if_see_player()
+            self.draw_render_box()
+            self.distance_to_player_checker()
+            self.movement()
 
     def draw_render_box(self):
-        self.render_box = [(self.coordinate[0] - 10, self.coordinate[1] - 10), (self.coordinate[0] + 10, self.coordinate[1] + 10)]
-        self.line1 = (self.render_box[0][0], self.coordinate[1]), (self.render_box[1][0], self.coordinate[1])
-        self.line2 = (self.coordinate[0], self.render_box[0][1]), (self.coordinate[0], self.render_box[1][1])
-        pg.draw.line(self.window, 'white', (self.render_box[0][0], self.coordinate[1]), (self.render_box[1][0], self.coordinate[1]))
-        pg.draw.line(self.window, 'white', (self.coordinate[0], self.render_box[0][1]), (self.coordinate[0], self.render_box[1][1]))
+        self.render_box = [(self.enemy_coordinate[0] - 10, self.enemy_coordinate[1] - 10), (self.enemy_coordinate[0] + 10, self.enemy_coordinate[1] + 10)]
+        self.line1 = (self.render_box[0][0], self.enemy_coordinate[1]), (self.render_box[1][0], self.enemy_coordinate[1])
+        self.line2 = (self.enemy_coordinate[0], self.render_box[0][1]), (self.enemy_coordinate[0], self.render_box[1][1])
+        pg.draw.line(self.window, 'white', (self.render_box[0][0], self.enemy_coordinate[1]), (self.render_box[1][0], self.enemy_coordinate[1]))
+        pg.draw.line(self.window, 'white', (self.enemy_coordinate[0], self.render_box[0][1]), (self.enemy_coordinate[0], self.render_box[1][1]))
 
     def movement(self):
         if len(self.pos_nodes) > 0:
-            self.speed = (enemy_speed/30) * self.game.delta_time
+            speed = self.speed_using * self.game.delta_time
 
             if not self.go_to_seen_pos:
                 self.target_node = self.pos_nodes[0]
                 if self.check_if_des():
                     self.pos_nodes.pop(0)
+                speed = self.speed * self.game.delta_time
             else:
                 
                 if self.see_player:
                     self.pos_nodes = self.player_pos[0], self.player_pos[1]
                     self.target_node = self.pos_nodes[0], self.pos_nodes[1]
                 self.check_if_des()
+                speed = self.chase_speed * self.game.delta_time
 
             targ_coor = self.target_node
-            epos = self.coordinate
+            epos = self.enemy_coordinate[0], self.enemy_coordinate[1]
             x = epos[0]
             y = epos[1]
 
@@ -564,20 +638,17 @@ class Enemy:
 
             angle = m.atan2(dy, dx)
 
-            x += m.cos(angle) * self.speed
-            y += m.sin(angle) * self.speed
+            x += m.cos(angle) * speed
+            y += m.sin(angle) * speed
             
-            self.coordinate = (x, y)
+            self.enemy_coordinate = (x, y)
             
 
         else:
-            self.create_path()
+            self.create_path_2()
 
     def check_if_des(self):
-        if not self.go_to_seen_pos:
-            condition = abs(self.coordinate[0] - self.target_node[0]) < 3 and abs(self.coordinate[1] - self.target_node[1]) < 3
-        else:
-            condition = abs(self.coordinate[0] - self.target_node[0]) < 3 and abs(self.coordinate[1] - self.target_node[1]) < 3
+        condition = abs(self.enemy_coordinate[0] - self.target_node[0]) < 3 and abs(self.enemy_coordinate[1] - self.target_node[1]) < 3
         if condition:
             if not self.go_to_seen_pos:
                 
@@ -631,7 +702,7 @@ class Enemy:
     def random_start_node_picker(self):
         self.pyths = {}
         for i in nodes:
-            diff = (self.coordinate[0] - nodes[i][0]), (self.coordinate[1] - nodes[i][1])
+            diff = (self.enemy_coordinate[0] - nodes[i][0]), (self.enemy_coordinate[1] - nodes[i][1])
             pyth = m.sqrt(diff[0] ** 2 + diff[1] ** 2)
             self.pyths[pyth] = (i[0], i[1])
         print(len(self.pyths))
@@ -646,8 +717,8 @@ class Enemy:
     
     def distance_to_player_checker(self):
         self.player_pos = self.body.player.player_pos
-        x = round(self.player_pos[0] - self.coordinate[0], 2)
-        y = round(self.player_pos[1] - self.coordinate[1], 2)
+        x = round(self.player_pos[0] - self.enemy_coordinate[0], 2)
+        y = round(self.player_pos[1] - self.enemy_coordinate[1], 2)
         self.distance_to_player = round(m.sqrt(x**2 + y**2), 2) # HYPOTENUSE FORMULA
         #print(self.distance_to_player)
 

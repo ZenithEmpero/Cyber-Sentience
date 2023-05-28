@@ -1,5 +1,4 @@
 import pygame as pg
-from main_lib import *
 from settings import *
 
 

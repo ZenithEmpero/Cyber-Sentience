@@ -13,7 +13,7 @@ FPS = 60
 bg_color = 'black'
 
 # PLAYER SETTINGS
-player_speed = 3 #1
+player_speed = 5 #1
 mouse_sensitivity= .1
 ray_length = 500
 

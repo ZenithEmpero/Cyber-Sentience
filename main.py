@@ -3,8 +3,8 @@ import tkinter as tk
 import sys
 from threading import Thread
 from settings import *
-from main_lib import *
-from dev_win import *
+#from main_lib import *
+from menu import *
 
 class Main:
     def __init__(self) -> None:
@@ -16,18 +16,19 @@ class Main:
 
         #self.new_game(self.window_size)
         #self.second_window()
-        Thread(target= self.new_game(self.window_size)).start()
-        Thread(target= sec_win).start()
+        self.window = pg.display.set_mode(self.window_size, flags=pg.RESIZABLE)
 
-        self.body = Body(self)
-
+        
+        self.body = None
         self.image = pg.image.load('textures/sample_png.png')
         width = self.image.get_rect().width
         height = self.image.get_rect().height
         self.image = pg.transform.scale(self.image, (width/10, height/10))
 
-    def new_game(self, ws):
-        self.window = pg.display.set_mode(ws, flags=pg.RESIZABLE)
+        self.menu = Menu(self)
+        self.all_events = pg.event.get()
+        self.running = True
+        self.game_is_running = False
 
     def update(self):
         self.delta_time = self.clock.tick(FPS)
@@ -39,39 +40,53 @@ class Main:
         self.draw()
         pg.display.flip()
         
-    def check_events(self):
-        for events in pg.event.get():
+    def check_events(self, game):
+        self.all_events = pg.event.get()
+        for events in self.all_events:
             if events.type == pg.QUIT:
                 pg.quit()
                 sys.exit()
 
-            if events.type == pg.KEYDOWN:
-                if events.key == pg.K_ESCAPE:
-                    self.window_selected = False
-                    pg.mouse.set_visible(True)
-            if events.type == pg.MOUSEBUTTONDOWN:
-                if self.mousepos[0] < WIDTH and self.mousepos[0] > 0 and self.mousepos[1] < HEIGHT and self.mousepos[1] > 0:
-                    self.window_selected = True
-                    pg.mouse.set_visible(False)
+            if game:
+                if events.type == pg.KEYDOWN:
+                    if events.key == pg.K_ESCAPE:
+                        self.window_selected = False
+                        pg.mouse.set_visible(True)
+                        self.game_is_running = False
+                
+                if events.type == pg.MOUSEBUTTONDOWN:
+                    if self.mousepos[0] < WIDTH and self.mousepos[0] > 0 and self.mousepos[1] < HEIGHT and self.mousepos[1] > 0:
+                        self.window_selected = True
+                        pg.mouse.set_visible(False)
+                        self.game_is_running = True
 
     def draw(self):
-        self.window.fill(bg_color)        
-        self.body.draw()
-        self.body.grahics.render_walls()
-        self.body.draw_line_wall()
-        self.body.draw_nodes()
+        if self.game_is_running:
+            if not self.menu.running:
+                self.window.fill(bg_color)        
+                self.body.draw()
+                self.body.graphics.render_walls()
+                #self.body.draw_line_wall()
+                #self.body.draw_nodes()
 
-        self.body.enemy.draw()
+                self.body.enemy.draw()
 
-        self.body.grahics.draw_chase_texture()
+                self.body.graphics.draw_chase_texture()
 
-        self.window.blit(self.image, (200, 150))
+                self.window.blit(self.image, (200, 150))
+                self.body.ui.update()
 
     def run(self):
-        while True:
-            self.check_events()
-            self.update()
+        
+        while self.running:
+            if self.menu.running:
+                self.menu.update()
+                self.check_events(False)
+            else:
+                self.check_events(True)
+                self.update()
 
 if __name__ == '__main__':
     game = Main()
     game.run()
+    pg.quit()
