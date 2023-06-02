@@ -74,6 +74,11 @@ class UI:
         x = .5
         self.sign1_img = pg.transform.scale(self.sign1_img, (self.sign1_img.get_width() * x, self.sign1_img.get_height() * x))
         self.sign1_img_pos = (WIDTH/2 - self.sign1_img.get_width()/2, HEIGHT/2 - self.sign1_img.get_height()/2)
+        
+        self.powercell_img = pg.image.load('textures/powercell.png')
+        x = 1
+        self.powercell_img = pg.transform.scale(self.powercell_img, (self.powercell_img.get_width() * x, self.powercell_img.get_height() * x))
+        
         # Flag
 
     def update(self):
@@ -84,6 +89,7 @@ class UI:
         self.jumpscare()
         self.sprint_bar()
         self.sign1_update()
+        self.powercell_update()
 
     def jumpscare(self):
         if not self.body.player.alive:
@@ -96,6 +102,11 @@ class UI:
     def sign1_update(self):
         if self.player.able_to_input_power:
             self.window.blit(self.sign1_img, self.sign1_img_pos)
+
+    def powercell_update(self):
+        if self.player.carrying_powercell:
+            if self.player.look_behind == 0:
+                self.window.blit(self.powercell_img, (500, 300))
 
 class Player:
     
@@ -131,6 +142,7 @@ class Player:
         self.inside_ps_range = False
         self.sees_ps = False
         self.able_to_input_power = False
+        self.look_behind = 0
         
 
         for i in line_walls:
@@ -238,6 +250,10 @@ class Player:
             dx += -speed_sin
             dy += speed_cos
             self.running = True
+        if keys[pg.K_SPACE]:
+            self.look_behind = 180
+        else:
+            self.look_behind = 0
         
 
         self.collision_checker(dx, dy)
@@ -292,7 +308,7 @@ class Player:
             pf = player_fov
         cone_angle = pf * (m.pi / 180)
         for i in range(num_rays):
-            angle = m.radians(self.angle) + (i - num_rays / 2) * cone_angle / num_rays
+            angle = m.radians(self.angle + self.look_behind) + (i - num_rays / 2) * cone_angle / num_rays
             direction = [m.cos(angle), m.sin(angle)]
             end_point = (self.player_pos[0] + direction[0] * fov_length, self.player_pos[1] + direction[1] * fov_length)
             self.multiple_rays_pos.append(end_point)
@@ -950,6 +966,7 @@ class PowerCell:
     def __init__(self, body) -> None:
         self.body = body
         self.window = body.window
+        self.powersystem = None
         self.powered = False
         self.pos = (630, 140)
         self.cross_size = 8
@@ -958,6 +975,8 @@ class PowerCell:
         self.line2 = (0, 0),  (0, 0)
         self.distance_to_player = 1
 
+        self.locations = ((r.randint(20, 560), r.randint(380, 580)), (r.randint(310, 560), r.randint(20, 360)), (r.randint(555, 780), r.randint(20, 580)))
+        self.pos = self.locations[1]
 
     def update(self):
         self.draw_on_map()
@@ -979,12 +998,16 @@ class PowerCell:
         self.distance_to_player = pyth
 
     def change_location(self):
-        self.pos = (r.randint(100, 700), r.randint(100, 500))
+        if self.powersystem.power < 2:
+            self.pos = self.locations[self.powersystem.power - 1]
+        else:
+            self.pos = (170, 48)
 
 class PowerSystem:
     def __init__(self, body) -> None:
         self.body = body
         self.window = body.window
+        self.powercell = body.powercell
         self.power = 0
         self.pos = (185, 270)
         self.cross_size = 8
@@ -996,6 +1019,8 @@ class PowerSystem:
         x = 65
         y = 65
         self.rect = (self.pos[0] - x/2, self.pos[1] - y/2, x, y)
+
+        self.powercell.powersystem = self
 
     def update(self):
         #self.draw_on_map()
