@@ -1,8 +1,10 @@
+from prescaling import *
 from map_data import *
 from settings import *
 from pathfinding.core.grid import *
 from pathfinding.finder.a_star import AStarFinder
 import pygame as pg, math as m, random as r
+
 
 pg.mixer.init(buffer=1024)
 
@@ -123,7 +125,6 @@ class Player:
 
 
     def draw(self):
-        win = self.window
         self.draw_ray()
 
         self.player_rect_collision = pg.Rect(self.player_pos[0] - 10, self.player_pos[1] - 10, 20, 20)
@@ -366,11 +367,13 @@ class Player:
         self.point_len2 = len(powercell_cross_intersection)//2
         if self.point_len2 != 0:
             self.middle_point2 = powercell_cross_intersection[self.point_len2]
+            self.powercell.calculate_distance_to_player()
 
         #print(powersystem_cross_intersection)
         self.point_len3 = len(powersystem_cross_intersection)//2
         if self.point_len3 != 0:
             self.middle_point3 = powersystem_cross_intersection[self.point_len3]
+            self.powersystem.calculate_distance_to_player()
 
 
         self.enemy_ray_intersection_points = []
@@ -407,6 +410,8 @@ class Player:
                 point_dis = sorted(point_dis.items())
                 self.enemy_ray_point = point_dis[0][1]
 
+
+        # ENEMY DETECTION
         i = self.enemy_render_box[0]
         x1 = i[0][0]
         y1 = i[0][1]
@@ -499,6 +504,8 @@ class Graphics:
         self.player = body.player
         self.body = body
         self.enemy = body.enemy
+        self.powersystem = body.powersystem
+        self.powercell = body.powercell
         self.win_size = pg.display.get_window_size()
         self.fog = 1
         self.or_fog = self.fog
@@ -624,22 +631,22 @@ class Graphics:
                 #print(self.player.point_len)
                     
             x += 4.44
-        try:
+        
             
-            if self.player.player_sees_enemy:
-                self.enemy_sprite_size_calculator()
+        if self.player.player_sees_enemy:
+            self.enemy_sprite_size_calculator()
+        if coord != None:
             if self.player.alive:
                 self.window.blit(self.A_texture_scaled, (coord[0] - self.A_texture_dimension_half[0], coord[1] - (self.A_texture_dimension_half[1] - (self.a))))
-        except Exception as e:
-            pass
-            #print('Error render_walls()/n', e)
+        
         
         self.pc_wave += .005 * self.body.game.delta_time
         wave = m.sin(self.pc_wave) * 15
-
+        self.pc_sprite_size_calculator()
         if coord2 != None:
-            self.window.blit(self.powercell_img, (coord2[0] - self.powercell_img.get_width() / 2, coord2[1] - ((self.powercell_img.get_height() / 2) + wave - self.a)))
+            self.window.blit(self.powercell_img, (coord2[0] - self.powercell_img.get_width() / 2, coord2[1] - ((self.powercell_img.get_height() / 2) + wave - (self.pc * 5))))
 
+        self.ps_sprite_size_calculator()
         if coord3 != None:
             self.window.blit(self.powersystem_img0, (coord3[0] - self.powersystem_img0.get_width() / 2, coord3[1] - ((self.powersystem_img0.get_height() / 2))))
 
@@ -654,6 +661,24 @@ class Graphics:
         self.A_texture_scaled = pg.transform.scale(self.A_texture, (self.A_texture_size[0] * self.a, self.A_texture_size[1] * self.a))
         self.A_texture_dimension = self.A_texture_scaled.get_rect().size
         self.A_texture_dimension_half = ((self.A_texture_dimension[0] / 2), (self.A_texture_dimension[1] / 2))
+
+    def ps_sprite_size_calculator(self):
+        self.ps = ((self.win_size[1]) / self.powersystem.distance_to_player)
+        if self.ps > 25:
+            self.ps = 25
+        if int(self.ps) > 0:
+            self.powersystem_img0 = scaled_img[int(self.ps)]
+        else:
+            self.powersystem_img0 = scaled_img[2]
+
+    def pc_sprite_size_calculator(self):
+        self.pc = ((self.win_size[1]) / self.powercell.distance_to_player)
+        if self.pc > 10:
+            self.pc = 10
+        if int(self.pc) > 0:
+            self.powercell_img = scaled_img_powercell[int(self.pc)]
+        else:
+            self.powercell_img = scaled_img_powercell[2]
 
     def draw_chase_texture(self):
         if self.player.alive:
@@ -840,11 +865,12 @@ class PowerCell:
         self.body = body
         self.window = body.window
         self.powered = False
-        self.pos = (35, 300)
+        self.pos = (185, 300)
         self.cross_size = 8
         self.cross = ((0, 0), (0, 0), (0, 0), (0, 0))
         self.line1 = (0, 0), (0, 0)
         self.line2 = (0, 0),  (0, 0)
+        self.distance_to_player = 1
 
 
     def update(self):
@@ -859,6 +885,12 @@ class PowerCell:
         self.line1 = (abs(self.cross_size - self.pos[0]), self.pos[1]), (self.cross_size + self.pos[0], self.pos[1])
         self.line2 = (self.pos[0], abs(self.cross_size - self.pos[1])), (self.pos[0], self.cross_size + self.pos[1])
         self.cross = self.line1[0], self.line1[1], self.line2[0], self.line2[1]
+
+    def calculate_distance_to_player(self):
+        player_pos = self.body.player.player_pos
+        sub = player_pos[0] - self.pos[0], player_pos[1] - self.pos[1]
+        pyth = m.sqrt(sub[0] ** 2 + sub[1] ** 2)
+        self.distance_to_player = pyth
 
 class PowerSystem:
     def __init__(self, body) -> None:
@@ -870,6 +902,7 @@ class PowerSystem:
         self.cross = ((0, 0), (0, 0), (0, 0), (0, 0))
         self.line1 = (0, 0), (0, 0)
         self.line2 = (0, 0),  (0, 0)
+        self.distance_to_player = 1
 
     def update(self):
         self.draw_on_map()
@@ -883,3 +916,9 @@ class PowerSystem:
         self.line1 = (abs(self.cross_size - self.pos[0]), self.pos[1]), (self.cross_size + self.pos[0], self.pos[1])
         self.line2 = (self.pos[0], abs(self.cross_size - self.pos[1])), (self.pos[0], self.cross_size + self.pos[1])
         self.cross = self.line1[0], self.line1[1], self.line2[0], self.line2[1]
+
+    def calculate_distance_to_player(self):
+        player_pos = self.body.player.player_pos
+        sub = player_pos[0] - self.pos[0], player_pos[1] - self.pos[1]
+        pyth = m.sqrt(sub[0] ** 2 + sub[1] ** 2)
+        self.distance_to_player = pyth
