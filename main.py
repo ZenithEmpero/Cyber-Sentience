@@ -21,15 +21,13 @@ class Main:
 
         
         self.body = None
-        self.image = pg.image.load('textures/sample_png.png')
-        width = self.image.get_rect().width
-        height = self.image.get_rect().height
-        self.image = pg.transform.scale(self.image, (width/10, height/10))
-
         self.menu = Menu(self)
         self.all_events = pg.event.get()
         self.running = True
         self.game_is_running = False
+        self.paused_img = pg.image.load('textures/paused.png')
+        x = .4
+        self.paused_img = pg.transform.scale(self.paused_img, (self.paused_img.get_width() * x, self.paused_img.get_height() * x))
 
     def update(self):
         self.delta_time = self.clock.tick(FPS)
@@ -67,7 +65,7 @@ class Main:
                 self.window.fill(bg_color)        
                 self.body.draw()
                 self.body.graphics.render_walls()
-                self.body.draw_line_wall()
+                #self.body.draw_line_wall()
                 #self.body.draw_nodes()
 
                 self.body.enemy.draw()
@@ -76,8 +74,9 @@ class Main:
 
                 self.body.powercell.update()
                 self.body.powersystem.update()
-                self.window.blit(self.image, (200, 150))
                 self.body.ui.update()
+        else:
+            self.window.blit(self.paused_img, (WIDTH/2 - self.paused_img.get_width() / 2, HEIGHT/2 - self.paused_img.get_height()/2))
 
     def run(self):
         

@@ -28,16 +28,16 @@ doors = [door1, door2, door3, door4, door5, door6]
 #RECT COLLISION
 # ROOM 1
 
-OWC1 = pg.Rect(0, 0, 1, 600)
-OWC2 = pg.Rect(0, 600, 800, 1)
-OWC3 = pg.Rect(800, 0, 1, 600)
-OWC4 = pg.Rect(0, 0, 800, 1)
+OWC1 = (0, 0, 1, 600)
+OWC2 = (0, 600, 800, 1)
+OWC3 = (800, 0, 1, 600)
+OWC4 = (0, 0, 800, 1)
 
-vert1 = pg.Rect(70, 0, 1, 100)
-vert2 = pg.Rect(300, 0, 1, 100)
-vert3 = pg.Rect(70, 170, 1, 200)
-vert4 = pg.Rect(300, 170, 1, 200)
-vert5 = pg.Rect(70, 440, 1, 90)
+vert1 = (70, 0, 1, 97)
+vert2 = (300, 0, 1, 97)
+vert3 = (70, 173, 1, 194)
+vert4 = (300, 173, 1, 194)
+vert5 = (70, 440, 1, 90)
 vert6 = (220, 440, 1, 30)
 vert7 = (220, 510, 1, 20)
 vert8 = (370, 280, 1, 200)
@@ -53,11 +53,13 @@ vert17 = (570, 280, 1, 265)
 vert18 = (570, 585, 1, 15)
 vert19 = (730, 350, 1, 250)
 vert20 = (730, 280, 1, 30)
+vert21 = (170, 260, 1, 20)
+vert22 = (200, 260, 1, 20)
 
-hor1 = pg.Rect(70, 100, 230, 1)
-hor2 = (70, 370, 45, 1)
-hor3 = (185, 370, 115, 1)
-hor4 = (265, 170, 35, 1)
+hor1 = (73, 100, 224, 1)
+hor2 = (73, 370, 42, 1)
+hor3 = (185, 370, 112, 1)
+hor4 = (265, 170, 32, 1)
 hor5 = (70, 440, 300, 1)
 hor6 = (70, 530, 210, 1)
 hor7 = (320, 530, 180, 1)
@@ -68,13 +70,17 @@ hor11 = (370, 70, 360, 1)
 hor12 = (570, 280, 160, 1)
 hor13 = (570, 400, 50, 1)
 hor14 = (660, 400, 70, 1)
-hor15 = (70, 170, 140, 1)
+hor15 = (73, 170, 137, 1)
+hor16 = (175, 255, 20, 1)
+hor17 = (175, 285, 20, 1)
 
 vertical_collision = [OWC1, OWC3, vert1, vert2, vert3, vert4, vert5, vert6,
                       vert7, vert8, vert9, vert10, vert11, vert12, vert13, 
-                      vert14, vert15, vert16, vert17, vert18, vert19, vert20]
+                      vert14, vert15, vert16, vert17, vert18, vert19, vert20,
+                      vert21, vert22]
 horizontal_collision = [OWC2, OWC4, hor1, hor2, hor3, hor4, hor5, hor6, hor7,
-                        hor8, hor9, hor10, hor11, hor12, hor13, hor14, hor15]
+                        hor8, hor9, hor10, hor11, hor12, hor13, hor14, hor15,
+                        hor16, hor17]
 
 rect_walls = []
 
@@ -139,6 +145,16 @@ for row in matrix:
     y += y_dif
     x = additional_grid_value
 
-print(f'Number of Rows: [{len(matrix)}]')
-print(f'Number of Columns: [{len(matrix[0])}]')
-print(f'Number of 1\'s: [{num_of_1}]')
+print('####################################')
+print('#  C Y B E R    S E N T I E N C E  #')
+print('#                                  #')
+print('#                                  #')
+print('#   Coded by: Balbutin             #')
+print('#   Members:                       #')
+print('#     + Torres                     #')
+print('#     + Guiling                    #')
+print('#     + Atienza                    #')
+print('#     + Padilla                    #')
+print('#     + Acuno                      #')
+print('#                                  #')
+print('####################################')
