@@ -17,6 +17,7 @@ class Main:
         #self.new_game(self.window_size)
         #self.second_window()
         self.window = pg.display.set_mode(self.window_size, flags=pg.RESIZABLE)
+        pg.display.set_caption('CYBER SENTIENCE 2203')
 
         
         self.body = None
@@ -35,7 +36,7 @@ class Main:
 
         self.mousepos = pg.mouse.get_pos()
         self.mouse_rel = pg.mouse.get_rel()
-        pg.display.set_caption(f'FPS: [{int(self.clock.get_fps())}]       x: [{self.mousepos[0]}]  y: [{self.mousepos[1]}] {self.mouse_rel}')
+        pg.display.set_caption(f'CYBER SENTIENCE 2203 FPS: [{int(self.clock.get_fps())}]       x: [{self.mousepos[0]}]  y: [{self.mousepos[1]}] {self.mouse_rel}')
         
         self.draw()
         pg.display.flip()
@@ -66,13 +67,15 @@ class Main:
                 self.window.fill(bg_color)        
                 self.body.draw()
                 self.body.graphics.render_walls()
-                #self.body.draw_line_wall()
+                self.body.draw_line_wall()
                 #self.body.draw_nodes()
 
                 self.body.enemy.draw()
 
                 self.body.graphics.draw_chase_texture()
 
+                self.body.powercell.update()
+                self.body.powersystem.update()
                 self.window.blit(self.image, (200, 150))
                 self.body.ui.update()
 

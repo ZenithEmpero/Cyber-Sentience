@@ -1,4 +1,5 @@
-import random as r
+import random as r, math as m
 
-for i in range(-100, 100):
-    print(i)
+
+for x in range(0, 10):
+    print(m.sin(x/3))

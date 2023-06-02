@@ -11,6 +11,8 @@ class Body:
         self.game = game
         self.window = game.window
         self.enemy = Enemy(self)
+        self.powercell = PowerCell(self)
+        self.powersystem = PowerSystem(self)
         self.player = Player(self)
         self.graphics = Graphics(self)
         self.ui = UI(self)
@@ -66,6 +68,7 @@ class UI:
         self.jumpscare_img = pg.transform.scale(self.jumpscare_img, (self.jumpscare_img.get_width() * x, self.jumpscare_img.get_height() * x))
         self.pos = r.randint(160, 640) - self.jumpscare_img.get_width()/2, r.randint(-50, 20)
 
+
         # Flag
 
     def update(self):
@@ -73,10 +76,16 @@ class UI:
 
     def draw(self):
         self.jumpscare()
+        self.sprint_bar()
 
     def jumpscare(self):
         if not self.body.player.alive:
             self.window.blit(self.jumpscare_img, (self.pos))
+
+    def sprint_bar(self):
+        pg.draw.line(self.window, 'green', (20, 200), (20, 400), 4)
+
+
 class Player:
     
     def __init__(self, body):
@@ -85,18 +94,26 @@ class Player:
         self.game = self.body.game
         self.window = self.game.window
         self.enemy = self.body.enemy
+        self.powercell = body.powercell
+        self.powersystem = body.powersystem
         self.alive = True
         self.stamina = 100
         self.player_pos = [35, 20]
-        self.angle = 0
+        self.angle = 90
         
         self.vertical_angle = pg.display.get_window_size()[1] / 2
         self.middle_point = 0
         self.point_len = 0
+        self.middle_point2 = 0
+        self.point_len2 = 0
+        self.middle_point3 = 0
+        self.point_len3 = 0
         self.points = []
         self.seen_by_enemy = False
+        self.player_sees_enemy = False
         self.game_over = False
         self.return_to_menu_delay = 0
+        self.speed = player_speed
 
         for i in line_walls:
             for a in i:
@@ -158,11 +175,11 @@ class Player:
                 #pg.mouse.set_pos(WIDTH/2, HEIGHT/2)
 
     def movement(self):
-        speed = (player_speed / 30) * self.game.delta_time
+        self.speed = (player_speed / 30) * self.game.delta_time
         sin_a = m.sin(m.radians(self.angle))
         cos_a = m.cos(m.radians(self.angle))
-        speed_sin = speed * sin_a
-        speed_cos = speed * cos_a
+        speed_sin = self.speed * sin_a
+        speed_cos = self.speed * cos_a
         dx, dy = 0, 0
 
         keys = pg.key.get_pressed()
@@ -179,32 +196,34 @@ class Player:
             dx += -speed_sin
             dy += speed_cos
 
-        
+        self.collision_checker(dx, dy)
         self.player_pos[0] += dx
         self.player_pos[1] += dy
-
-        self.collision_checker(dx, dy)
 
     def collision_checker(self, dx, dy):
         for i in self.game.body.vertical_collision:
             if pg.Rect.colliderect(self.player_rect_collision, i):
-                self.player_pos[0] -= dx
                 if self.player_pos[0] > i[0]:
-                    self.player_pos[0] += .1
-                elif self.player_pos[0] < i[0]:
-                    self.player_pos[0] -= .1
-
+                    if dx < 0:
+                        self.player_pos[0] -= dx
+                else:
+                    if dx > 0:
+                        self.player_pos[0] -= dx
         for i in self.game.body.horizontal_collision:
             if pg.Rect.colliderect(self.player_rect_collision, i):
-                self.player_pos[1] -= dy
                 if self.player_pos[1] > i[1]:
-                    self.player_pos[1] += .1
-                elif self.player_pos[1] < i[1]:
-                    self.player_pos[1] -= .1
+                    if dy < 0:
+                        self.player_pos[1] -= dy
+                else:
+                    if dy > 0:
+                        self.player_pos[1] -= dy
 
         if self.player_rect_collision.collidepoint(self.enemy.enemy_coordinate):
             if not self.game_over:
                 self.fgame_over()
+
+        if self.player_rect_collision.collidepoint(self.powercell.pos):
+            print('Touch Powercell')
     
     def min_and_max(self, a, b, c):
         x = max(a, min(b, (c - self.enemy.distance_to_player) * (b / c)))
@@ -226,6 +245,7 @@ class Player:
     def check_intersection(self):
         self.points = {}
         enemy_box_intersection_points = []
+        
         for a in self.multiple_rays_pos:
             
  
@@ -242,9 +262,9 @@ class Player:
                 x4 = a[0]
                 y4 = a[1]
 
-                t_num= ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
-                u_num = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
-                den = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+                t_num = self.intersection_formula('t', x1, y1, x2, y2, x3, y3, x4, y4)
+                u_num = self.intersection_formula('u', x1, y1, x2, y2, x3, y3, x4, y4)
+                den = self.intersection_formula('d', x1, y1, x2, y2, x3, y3, x4, y4)
                 if den == 0:
                     return
                 self.t = (t_num/ den)    
@@ -264,24 +284,43 @@ class Player:
                 #pg.draw.aaline(self.window, ray_color, self.player_pos, a)
                 self.points[a] = None
 
-
-        
+        powercell_cross_intersection = []
+        powersystem_cross_intersection = []
         for a in self.points:
+            self.powercell_cross = self.powercell.line1, self.powercell.line2
+            for i in self.powercell_cross:
+                x1 = i[0][0]
+                y1 = i[0][1]
+                x2 = i[1][0]
+                y2 = i[1][1]
+                x4 = a[0]
+                y4 = a[1]
+
+                t_num = self.intersection_formula('t', x1, y1, x2, y2, x3, y3, x4, y4)
+                u_num = self.intersection_formula('u', x1, y1, x2, y2, x3, y3, x4, y4)
+                den = self.intersection_formula('d', x1, y1, x2, y2, x3, y3, x4, y4)
+                if den == 0:
+                    return
+                self.t = (t_num/ den)    
+                self.u = u_num / den
+                self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
+                if (0 < self.t < 1) and (0 < self.u < 1):
+                    powercell_cross_intersection.append(a)
+                    pg.draw.aaline(self.window, 'green', self.player_pos, self.point_of_intersection)
+
+
             self.enemy_render_box = self.enemy.line1, self.enemy.line2
             
+            # ENEMY
             for i in self.enemy_render_box:
                 x1 = i[0][0]
                 y1 = i[0][1]
                 x2 = i[1][0]
                 y2 = i[1][1]
-                x3 = self.player_pos[0]
-                y3 = self.player_pos[1]
-                x4 = a[0]
-                y4 = a[1]
 
-                t_num= ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4))
-                u_num = ((x1 - x3) * (y1 - y2) - (y1 - y3) * (x1 - x2))
-                den = ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+                t_num = self.intersection_formula('t', x1, y1, x2, y2, x3, y3, x4, y4)
+                u_num = self.intersection_formula('u', x1, y1, x2, y2, x3, y3, x4, y4)
+                den = self.intersection_formula('d', x1, y1, x2, y2, x3, y3, x4, y4)
                 if den == 0:
                     return
                 self.t = (t_num/ den)    
@@ -291,12 +330,48 @@ class Player:
                     enemy_box_intersection_points.append(a)
                     pg.draw.aaline(self.window, 'green', self.player_pos, self.point_of_intersection)
 
+            self.powersystem_cross = self.powersystem.line1, self.powersystem.line2
+            
+            for i in self.powersystem_cross:
+                x1 = i[0][0]
+                y1 = i[0][1]
+                x2 = i[1][0]
+                y2 = i[1][1]
+
+                t_num = self.intersection_formula('t', x1, y1, x2, y2, x3, y3, x4, y4)
+                u_num = self.intersection_formula('u', x1, y1, x2, y2, x3, y3, x4, y4)
+                den = self.intersection_formula('d', x1, y1, x2, y2, x3, y3, x4, y4)
+                if den == 0:
+                    return
+                self.t = (t_num/ den)    
+                self.u = u_num / den
+                self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
+                if (0 < self.t < 1) and (0 < self.u < 1):
+                    powersystem_cross_intersection.append(a)
+                    pg.draw.aaline(self.window, 'green', self.player_pos, self.point_of_intersection)
+
+
         try:
             self.point_len = m.ceil(len(enemy_box_intersection_points)/2)
+            if self.point_len > 0:
+                if not self.player_sees_enemy:
+                    self.player_sees_enemy = True
+            else:
+                if self.player_sees_enemy:
+                    self.player_sees_enemy = False
             self.middle_point = enemy_box_intersection_points[self.point_len]
         except:
             pass
-            #print(len(enemy_box_intersection_points)/2)
+
+        self.point_len2 = len(powercell_cross_intersection)//2
+        if self.point_len2 != 0:
+            self.middle_point2 = powercell_cross_intersection[self.point_len2]
+
+        #print(powersystem_cross_intersection)
+        self.point_len3 = len(powersystem_cross_intersection)//2
+        if self.point_len3 != 0:
+            self.middle_point3 = powersystem_cross_intersection[self.point_len3]
+
 
         self.enemy_ray_intersection_points = []
         for i in self.walls:
@@ -304,8 +379,6 @@ class Player:
             y1 = i[1]
             x2 = i[2]
             y2 = i[3]
-            x3 = self.player_pos[0]
-            y3 = self.player_pos[1]
             x4 = self.enemy_end_pos[0]
             y4 = self.enemy_end_pos[1]
 
@@ -339,8 +412,6 @@ class Player:
         y1 = i[0][1]
         x2 = i[1][0]
         y2 = i[1][1]
-        x3 = self.player_pos[0]
-        y3 = self.player_pos[1]
         x4 = self.enemy_ray_point[0]
         y4 = self.enemy_ray_point[1]
 
@@ -431,6 +502,7 @@ class Graphics:
         self.win_size = pg.display.get_window_size()
         self.fog = 1
         self.or_fog = self.fog
+        self.a = 0
 
         self.A_texture = pg.image.load('textures/A.v2.png')
         self.A_texture_size = self.A_texture.get_width(), self.A_texture.get_height()
@@ -438,6 +510,18 @@ class Graphics:
         #self.chase_image = pg.image.load('textures/chase_image.jpg').convert_alpha()
         self.chase_rect = pg.Rect(0, 0, self.win_size[0], self.win_size[1])
         self.transparent_surface = pg.Surface((self.win_size[0], self.win_size[1]), pg.SRCALPHA)
+
+        # POWER CELL
+        self.powercell_img = pg.image.load('textures/powercell.png')
+        x = .4
+        self.powercell_img = pg.transform.scale(self.powercell_img, (self.powercell_img.get_width() * x, self.powercell_img.get_height() * x))
+        self.pc_wave = 0
+
+        # POWER SYSTEM
+        self.powersystem_img0 = pg.image.load('textures/ps_0.png')
+        self.powersystem_img1 = pg.image.load('textures/ps_1.png')
+        self.powersystem_img2 = pg.image.load('textures/ps_2.png')
+        self.powersystem_img3 = pg.image.load('textures/ps_3.png')
 
         #AUDIO
         self.heartbeat_audio = pg.mixer.Sound('audio/heart_beat.mp3')
@@ -459,7 +543,6 @@ class Graphics:
         self.fog_increased = False
         self.fog_delay = 0
 
-        
 
     def render_walls(self):
         self.vertical_angle = self.player.vertical_angle
@@ -467,6 +550,9 @@ class Graphics:
         winsize = self.win_size
         x = 4
         coord = None
+        coord2 = None
+        coord3 = None
+        
         for i in self.player.points:
             wall_color = self.player.points[i]
             x1 = self.player.player_pos[0]
@@ -524,21 +610,43 @@ class Graphics:
                 if self.player.middle_point == i:
                     #pg.draw.circle(self.window, 'red', (x, va), 100)
                     coord = (x, va)
+
+            if self.player.point_len2 != 0:
+                if self.player.middle_point2 == i:
+
+                    coord2 = (x, va)
+
+            if self.player.point_len3 != 0:
+                if self.player.middle_point3 == i:
+                    coord3 = (x, va)
+
+            #else:
+                #print(self.player.point_len)
                     
             x += 4.44
         try:
             
-            self.enemy_sprite_size_calculator()
+            if self.player.player_sees_enemy:
+                self.enemy_sprite_size_calculator()
             if self.player.alive:
                 self.window.blit(self.A_texture_scaled, (coord[0] - self.A_texture_dimension_half[0], coord[1] - (self.A_texture_dimension_half[1] - (self.a))))
-        
-        except:
+        except Exception as e:
             pass
-            #print('Error render_walls()')
+            #print('Error render_walls()/n', e)
+        
+        self.pc_wave += .005 * self.body.game.delta_time
+        wave = m.sin(self.pc_wave) * 15
+
+        if coord2 != None:
+            self.window.blit(self.powercell_img, (coord2[0] - self.powercell_img.get_width() / 2, coord2[1] - ((self.powercell_img.get_height() / 2) + wave - self.a)))
+
+        if coord3 != None:
+            self.window.blit(self.powersystem_img0, (coord3[0] - self.powersystem_img0.get_width() / 2, coord3[1] - ((self.powersystem_img0.get_height() / 2))))
 
 
 
     def enemy_sprite_size_calculator(self):
+        
         self.a = ((.3 * self.win_size[1]) / (self.enemy.distance_to_player))
         x = 5
         if self.a > x:
@@ -726,3 +834,52 @@ class Enemy:
         self.see_player =  self.body.player.seen_by_enemy
         if self.see_player:
             self.go_to_seen_pos = True
+
+class PowerCell:
+    def __init__(self, body) -> None:
+        self.body = body
+        self.window = body.window
+        self.powered = False
+        self.pos = (35, 300)
+        self.cross_size = 8
+        self.cross = ((0, 0), (0, 0), (0, 0), (0, 0))
+        self.line1 = (0, 0), (0, 0)
+        self.line2 = (0, 0),  (0, 0)
+
+
+    def update(self):
+        self.draw_on_map()
+        self.update_cross()
+
+    def draw_on_map(self):
+        pg.draw.aaline(self.window, 'white', self.cross[0], self.cross[1])
+        pg.draw.aaline(self.window, 'white', self.cross[2], self.cross[3])
+
+    def update_cross(self):
+        self.line1 = (abs(self.cross_size - self.pos[0]), self.pos[1]), (self.cross_size + self.pos[0], self.pos[1])
+        self.line2 = (self.pos[0], abs(self.cross_size - self.pos[1])), (self.pos[0], self.cross_size + self.pos[1])
+        self.cross = self.line1[0], self.line1[1], self.line2[0], self.line2[1]
+
+class PowerSystem:
+    def __init__(self, body) -> None:
+        self.body = body
+        self.window = body.window
+        self.power = 0
+        self.pos = (185, 270)
+        self.cross_size = 8
+        self.cross = ((0, 0), (0, 0), (0, 0), (0, 0))
+        self.line1 = (0, 0), (0, 0)
+        self.line2 = (0, 0),  (0, 0)
+
+    def update(self):
+        self.draw_on_map()
+        self.update_cross()
+
+    def draw_on_map(self):
+        pg.draw.aaline(self.window, 'white', self.cross[0], self.cross[1])
+        pg.draw.aaline(self.window, 'white', self.cross[2], self.cross[3])
+
+    def update_cross(self):
+        self.line1 = (abs(self.cross_size - self.pos[0]), self.pos[1]), (self.cross_size + self.pos[0], self.pos[1])
+        self.line2 = (self.pos[0], abs(self.cross_size - self.pos[1])), (self.pos[0], self.cross_size + self.pos[1])
+        self.cross = self.line1[0], self.line1[1], self.line2[0], self.line2[1]
