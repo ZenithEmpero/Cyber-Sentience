@@ -15,6 +15,7 @@ class Body:
         self.enemy = Enemy(self)
         self.powercell = PowerCell(self)
         self.powersystem = PowerSystem(self)
+        self.portal = Portal(self)
         self.player = Player(self)
         self.graphics = Graphics(self)
         self.ui = UI(self)
@@ -64,6 +65,7 @@ class UI:
         self.game = body.game
         self.player = body.player
         self.window = body.window
+        self.player.ui = self
 
         self.jumpscare_img = pg.image.load('textures/A_jumpscare.png')
         x = 5
@@ -79,17 +81,27 @@ class UI:
         x = 1
         self.powercell_img = pg.transform.scale(self.powercell_img, (self.powercell_img.get_width() * x, self.powercell_img.get_height() * x))
         
+        self.m_font = 'fonts/m.ttf'
+
+        powercell_text = 'You can only carry one powercell at a time.'
+        pt_font = pg.font.Font(self.m_font, 25)
+        self.pt = pt_font.render(powercell_text, False, 'white')
+        self.pt_activate = False
+    
         # Flag
 
     def update(self):
         self.draw()
-        
-
+    
     def draw(self):
         self.jumpscare()
-        self.sprint_bar()
-        self.sign1_update()
-        self.powercell_update()
+
+        if self.player.alive:
+            self.sprint_bar()
+            self.sign1_update()
+            self.powercell_update()
+            if self.pt_activate:
+                self.powercell_text()
 
     def jumpscare(self):
         if not self.body.player.alive:
@@ -108,6 +120,9 @@ class UI:
             if self.player.look_behind == 0:
                 self.window.blit(self.powercell_img, (500, 300))
 
+    def powercell_text(self):
+        self.window.blit(self.pt, (WIDTH/2 - self.pt.get_width()/2, HEIGHT*.85 - self.pt.get_height()/2))
+
 class Player:
     
     def __init__(self, body):
@@ -118,6 +133,8 @@ class Player:
         self.enemy = self.body.enemy
         self.powercell = body.powercell
         self.powersystem = body.powersystem
+        self.portal = body.portal
+        self.ui = None
         self.alive = True
         self.stamina = 100
         self.running = False
@@ -131,6 +148,8 @@ class Player:
         self.point_len2 = 0
         self.middle_point3 = 0
         self.point_len3 = 0
+        self.middle_point4 = 0
+        self.point_len4 = 0
         self.points = []
         self.seen_by_enemy = False
         self.player_sees_enemy = False
@@ -285,10 +304,13 @@ class Player:
             if not self.game_over:
                 self.fgame_over()
 
+        self.ui.pt_activate = False
         if self.player_rect_collision.collidepoint(self.powercell.pos):
             if not self.carrying_powercell:
                 self.carrying_powercell = True
                 self.powercell.change_location()
+            else:
+                self.ui.pt_activate = True
 
         if self.player_rect_collision.colliderect(self.powersystem.rect):
             if not self.inside_ps_range:
@@ -357,6 +379,7 @@ class Player:
 
         powercell_cross_intersection = []
         powersystem_cross_intersection = []
+        portal_cross_intersection = []
         for a in self.points:
             self.powercell_cross = self.powercell.line1, self.powercell.line2
             for i in self.powercell_cross:
@@ -421,6 +444,26 @@ class Player:
                     powersystem_cross_intersection.append(a)
                     #pg.draw.aaline(self.window, 'green', self.player_pos, self.point_of_intersection)
 
+            self.portal_cross = self.portal.line1, self.portal.line2
+            for i in self.portal_cross:
+                x1 = i[0][0]
+                y1 = i[0][1]
+                x2 = i[1][0]
+                y2 = i[1][1]
+
+                t_num = self.intersection_formula('t', x1, y1, x2, y2, x3, y3, x4, y4)
+                u_num = self.intersection_formula('u', x1, y1, x2, y2, x3, y3, x4, y4)
+                den = self.intersection_formula('d', x1, y1, x2, y2, x3, y3, x4, y4)
+                if den == 0:
+                    return
+                self.t = (t_num/ den)    
+                self.u = u_num / den
+                self.point_of_intersection = (x1 + self.t * (x2 - x1)), (y1 + self.t * (y2 - y1)) 
+                if (0 < self.t < 1) and (0 < self.u < 1):
+                    portal_cross_intersection.append(a)
+                    #pg.draw.aaline(self.window, 'green', self.player_pos, self.point_of_intersection)
+
+
 
         try:
             self.point_len = m.ceil(len(enemy_box_intersection_points)/2)
@@ -446,6 +489,11 @@ class Player:
             self.sees_ps = True
         else:
             self.sees_ps = False
+
+        self.point_len4 = len(portal_cross_intersection)//2
+        if self.point_len4 != 0:
+            self.middle_point4 = portal_cross_intersection[self.point_len4]
+            self.portal.calculate_distance_to_player()
 
 
         self.enemy_ray_intersection_points = []
@@ -599,6 +647,7 @@ class Graphics:
         self.enemy = body.enemy
         self.powersystem = body.powersystem
         self.powercell = body.powercell
+        self.portal = body.portal
         self.win_size = pg.display.get_window_size()
         self.fog = 1
         self.or_fog = self.fog
@@ -624,12 +673,15 @@ class Graphics:
         self.powersystem_img2 = pg.image.load('textures/ps_2.png')
         self.powersystem_img3 = pg.image.load('textures/ps_3.png')
 
+        # PORTAL
+        self.portal_img = pg.image.load('textures/portal.png')
+
         #AUDIO
         self.heartbeat_audio = pg.mixer.Sound('audio/heart_beat.mp3')
         self.tv_static_audio = pg.mixer.Sound('audio/tv_static.wav')
         self.ambience = pg.mixer.Sound('audio/ambience.wav')
         self.jumpscare = pg.mixer.Sound('audio/jumpscare.wav')
-        self.jumpscare.set_volume(.7)
+        self.jumpscare.set_volume(.3)
 
         self.heartbeat_audio.set_volume(0)
         self.heartbeat_audio.play(loops=-1)
@@ -653,6 +705,7 @@ class Graphics:
         coord = None
         coord2 = None
         coord3 = None
+        coord4 = None
         
         for i in self.player.points:
             wall_color = self.player.points[i]
@@ -718,6 +771,10 @@ class Graphics:
             if self.player.point_len3 != 0:
                 if self.player.middle_point3 == i:
                     coord3 = (x, va)
+
+            if self.player.point_len4 != 0:
+                if self.player.middle_point4 == i:
+                    coord4 = (x, va)
                     
             x += 4.44
         
@@ -731,6 +788,7 @@ class Graphics:
             sprites[self.enemy.distance_to_player] = 'e'
             sprites[self.powersystem.distance_to_player] = 's'
             sprites[self.powercell.distance_to_player] = 'c'
+            sprites[self.portal.distance_to_player] = 'p'
             sprites = dict(sorted(sprites.items(), reverse=True))
             for i in sprites:
                 if sprites[i] == 'e':
@@ -747,6 +805,11 @@ class Graphics:
                     self.ps_sprite_size_calculator()
                     if coord3 != None:
                         self.window.blit(self.powersystem_img_used, (coord3[0] - self.powersystem_img_used.get_width() / 2, coord3[1] - ((self.powersystem_img_used.get_height() / 2))))
+                elif sprites[i] == 'p':
+                    self.portal_sprite_size_calculator()
+                    if coord4 != None:
+                        if self.portal.activated:
+                            self.window.blit(self.portal_img, (coord4[0] - self.portal_img.get_width()/2, coord4[1] - self.portal_img.get_height()/2))
 
 
 
@@ -784,6 +847,16 @@ class Graphics:
             self.powercell_img = scaled_img_powercell[int(self.pc)]
         else:
             self.powercell_img = scaled_img_powercell[2]
+
+    def portal_sprite_size_calculator(self):
+        self.p = ((self.win_size[1]) / self.portal.distance_to_player)
+        if self.p > 20:
+            self.p = 20
+        if int(self.p) > 0:
+            self.portal_img = scaled_img_portal[int(self.p)]
+        else:
+            self.portal_img = scaled_img_portal[2]
+
 
 
     def draw_chase_texture(self):
@@ -969,7 +1042,7 @@ class PowerCell:
         self.powersystem = None
         self.powered = False
         self.pos = (630, 140)
-        self.cross_size = 8
+        self.cross_size = 3
         self.cross = ((0, 0), (0, 0), (0, 0), (0, 0))
         self.line1 = (0, 0), (0, 0)
         self.line2 = (0, 0),  (0, 0)
@@ -1010,7 +1083,7 @@ class PowerSystem:
         self.powercell = body.powercell
         self.power = 0
         self.pos = (185, 270)
-        self.cross_size = 8
+        self.cross_size = 3
         self.cross = ((0, 0), (0, 0), (0, 0), (0, 0))
         self.line1 = (0, 0), (0, 0)
         self.line2 = (0, 0),  (0, 0)
@@ -1040,3 +1113,41 @@ class PowerSystem:
         sub = player_pos[0] - self.pos[0], player_pos[1] - self.pos[1]
         pyth = m.sqrt(sub[0] ** 2 + sub[1] ** 2)
         self.distance_to_player = pyth
+
+class Portal:
+    def __init__(self, body) -> None:
+        self.body = body
+        self.window = body.window
+        self.powersystem = body.powersystem
+        self.pos = (20, 300)
+        self.cross_size = 3
+        self.cross = ((0, 0), (0, 0), (0, 0), (0, 0))
+        self.line1 = (0, 0), (0, 0)
+        self.line2 = (0, 0),  (0, 0)
+        self.distance_to_player = 1
+
+        self.activated = False
+
+    def update(self):
+        self.draw_on_map()
+        self.update_cross()
+        self.check_if_activated()
+
+    def draw_on_map(self):
+        pg.draw.aaline(self.window, 'white', self.cross[0], self.cross[1])
+        pg.draw.aaline(self.window, 'white', self.cross[2], self.cross[3])
+
+    def update_cross(self):
+        self.line1 = (abs(self.cross_size - self.pos[0]), self.pos[1]), (self.cross_size + self.pos[0], self.pos[1])
+        self.line2 = (self.pos[0], abs(self.cross_size - self.pos[1])), (self.pos[0], self.cross_size + self.pos[1])
+        self.cross = self.line1[0], self.line1[1], self.line2[0], self.line2[1]
+
+    def calculate_distance_to_player(self):
+        player_pos = self.body.player.player_pos
+        sub = player_pos[0] - self.pos[0], player_pos[1] - self.pos[1]
+        pyth = m.sqrt(sub[0] ** 2 + sub[1] ** 2)
+        self.distance_to_player = pyth
+
+    def check_if_activated(self):
+        if self.powersystem.power >= 3:
+            self.activated = True

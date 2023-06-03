@@ -74,6 +74,7 @@ class Main:
 
                 self.body.powercell.update()
                 self.body.powersystem.update()
+                self.body.portal.update()
                 self.body.ui.update()
         else:
             self.window.blit(self.paused_img, (WIDTH/2 - self.paused_img.get_width() / 2, HEIGHT/2 - self.paused_img.get_height()/2))

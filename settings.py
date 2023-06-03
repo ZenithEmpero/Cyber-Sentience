@@ -27,7 +27,7 @@ ray_color = 'green'
 rect_collision_color = (93, 232, 244)
 
 # ENEMY SETTINGS
-enemy_speed = .1
+enemy_speed = 0
 enemy_ray_length = 500
 enemy_ray_angle = m.radians(0)
 
