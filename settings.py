@@ -8,12 +8,12 @@ SCB = False   # SHOW COLLISION BOX
 
 # GAME SETTINGS
 minimap = True
-WIDTH, HEIGHT = (800, 600)
+WIDTH, HEIGHT = (1000, 600)
 FPS = 60
 bg_color = 'black'
 
 # PLAYER SETTINGS
-player_speed = 1.3#1
+player_speed = 5#1
 mouse_sensitivity= .1
 ray_length = 500
 

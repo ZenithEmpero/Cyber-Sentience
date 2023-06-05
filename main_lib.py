@@ -5,12 +5,11 @@ from pathfinding.core.grid import *
 from pathfinding.finder.a_star import AStarFinder
 import pygame as pg, math as m, random as r
 
-
-pg.mixer.init(buffer=1024)
-
 class Body:
     def __init__(self, game) -> None:
+        pg.mixer.init(buffer=1024)
         self.game = game
+        self.win_size = (WIDTH, HEIGHT)
         self.window = game.window
         self.enemy = Enemy(self)
         self.powercell = PowerCell(self)
@@ -21,16 +20,14 @@ class Body:
         self.ui = UI(self)
         self.vertical_collision = vertical_collision
         self.horizontal_collision = horizontal_collision
+        
 
         self.SCB = SCB
 
     def draw(self):
-    
-        #self.draw_line_wall()
-        
         self.player.draw()
-        #self.enemy.draw()
         self.player.turn()
+        self.check_if_win()
 
 
     def draw_line_wall(self):
@@ -59,38 +56,56 @@ class Body:
         except:
             pass
 '''
+    def check_if_win(self):
+        if self.player.escaped:
+            self.game.menu.running = True
+            pg.mixer.quit()
 class UI:
     def __init__(self, body) -> None:
         self.body = body
         self.game = body.game
         self.player = body.player
         self.window = body.window
+        self.ws = body.win_size
         self.player.ui = self
+        self.powersystem = body.powersystem
+        self.portal = body.portal
+
+        self.minimap_img = pg.image.load('textures/minimap.png')
+        x = .8
+        self.minimap_img = pg.transform.scale(self.minimap_img, (self.minimap_img.get_width()*x, self.minimap_img.get_height()*x))
 
         self.jumpscare_img = pg.image.load('textures/A_jumpscare.png')
         x = 5
         self.jumpscare_img = pg.transform.scale(self.jumpscare_img, (self.jumpscare_img.get_width() * x, self.jumpscare_img.get_height() * x))
-        self.jumpscare_img_pos = r.randint(160, 640) - self.jumpscare_img.get_width()/2, r.randint(-50, 20)
+        #self.jumpscare_img_pos = r.randint(self.ws[0]*.2, self.ws[0]*.8) - self.jumpscare_img.get_width()/2, r.randint(-self.ws[1]*.083, self.ws[1]*.03)
 
         self.sign1_img = pg.image.load('textures/sign1.png')
         x = .5
         self.sign1_img = pg.transform.scale(self.sign1_img, (self.sign1_img.get_width() * x, self.sign1_img.get_height() * x))
-        self.sign1_img_pos = (WIDTH/2 - self.sign1_img.get_width()/2, HEIGHT/2 - self.sign1_img.get_height()/2)
         
         self.powercell_img = pg.image.load('textures/powercell.png')
         x = 1
         self.powercell_img = pg.transform.scale(self.powercell_img, (self.powercell_img.get_width() * x, self.powercell_img.get_height() * x))
         
         self.m_font = 'fonts/m.ttf'
+        self.l_font = 'fonts/l.otf'
 
+        # POWERCELL TEXT
         powercell_text = 'You can only carry one powercell at a time.'
         pt_font = pg.font.Font(self.m_font, 25)
         self.pt = pt_font.render(powercell_text, False, 'white')
         self.pt_activate = False
-    
+
+        # OBJECTIVE TEXT
+        self.obj_font = pg.font.Font(self.m_font, 19)
+
+        # DIRECTION TEXT
+        self.dir_font = pg.font.Font(self.l_font, 50)
         # Flag
 
     def update(self):
+        #self.ws = self.body.win_size
         self.draw()
     
     def draw(self):
@@ -100,28 +115,69 @@ class UI:
             self.sprint_bar()
             self.sign1_update()
             self.powercell_update()
+            self.objectives_texts()
+            self.direction()
+            self.display_minimap()
             if self.pt_activate:
                 self.powercell_text()
 
     def jumpscare(self):
-        if not self.body.player.alive:
+       if not self.body.player.alive:
             self.window.blit(self.jumpscare_img, (self.jumpscare_img_pos))
+       else:
+        a = int(self.ws[0]*.2)
+        b = int(self.ws[0]*.8)
+        c = int(-self.ws[1]*.083)
+        d = int(self.ws[1]*.03)
+        self.jumpscare_img_pos = r.randint(a, b) - self.jumpscare_img.get_width()/2, r.randint(c, d)
+ 
 
     def sprint_bar(self):
         #pg.draw.line(self.window, 'white', (20, 195), (20, 405), 13)
-        pg.draw.line(self.window, 'green', (20, 400 - (self.player.stamina * 2)), (20, 400), 15)
+        stamina = self.player.stamina
+        percentage = (stamina/100)*100
+        if percentage <= 50:
+            # Transition from green to yellow
+            red = 255
+            green = int(percentage * 5.1)  # Increase red component from 0 to 255
+        else:
+            # Transition from yellow to red
+            red = int((1 - (percentage - 50) / 50) * 255)  # Decrease green component from 255 to 0
+            green = 255
+        pg.draw.line(self.window, (red, green, 0), (20, 400 - (stamina * 2)), (20, 400), 20)
 
     def sign1_update(self):
+        self.sign1_img_pos = (self.ws[0]/2 - self.sign1_img.get_width()/2, self.ws[1]/2 - self.sign1_img.get_height()/2)
         if self.player.able_to_input_power:
             self.window.blit(self.sign1_img, self.sign1_img_pos)
 
     def powercell_update(self):
         if self.player.carrying_powercell:
             if self.player.look_behind == 0:
-                self.window.blit(self.powercell_img, (500, 300))
+                self.window.blit(self.powercell_img, (self.ws[0]*.625, self.ws[1]*.5))
 
     def powercell_text(self):
-        self.window.blit(self.pt, (WIDTH/2 - self.pt.get_width()/2, HEIGHT*.85 - self.pt.get_height()/2))
+        self.window.blit(self.pt, (self.ws[0]/2 - self.pt.get_width()/2, self.ws[1]*.85 - self.pt.get_height()/2))
+
+    def objectives_texts(self):
+        self.objectives_text('Objectives: ', 0, 'white')
+        color = 'white'
+        if self.portal.activated:
+            self.objectives_text('- Escape through the portal', 56, 'white')
+            color = 'green'
+        self.objectives_text(f'- Recharge the power system {self.powersystem.power}/3', 28, color)
+
+    def objectives_text(self, text, ypos, color):
+        self.ot = self.obj_font.render(text, False, color)
+        self.window.blit(self.ot, (self.ws[0]*.02, self.ws[1]*.04 - self.ot.get_height()/2 + ypos))
+
+    def direction(self):
+        text = self.dir_font.render(self.player.direction, False, 'white')
+        self.window.blit(text, (self.ws[0]*.5 - text.get_width()/2, self.ws[1]*.04))
+
+    def display_minimap(self):
+        if self.player.show_minimap:
+            self.window.blit(self.minimap_img, (self.ws[0]*.5 - self.minimap_img.get_width()/2, self.ws[1]*.5 - self.minimap_img.get_height()/2))
 
 class Player:
     
@@ -130,6 +186,7 @@ class Player:
         self.body = body
         self.game = self.body.game
         self.window = self.game.window
+        self.ws = body.win_size
         self.enemy = self.body.enemy
         self.powercell = body.powercell
         self.powersystem = body.powersystem
@@ -140,6 +197,9 @@ class Player:
         self.running = False
         self.player_pos = [35, 20]
         self.angle = 90
+        self.direction = ''
+        self.escaped = False
+        self.show_minimap = False
         
         self.vertical_angle = pg.display.get_window_size()[1] / 2
         self.middle_point = 0
@@ -162,6 +222,7 @@ class Player:
         self.sees_ps = False
         self.able_to_input_power = False
         self.look_behind = 0
+    
         
 
         for i in line_walls:
@@ -172,6 +233,7 @@ class Player:
 
 
     def draw(self):
+        #self.ws = self.body.win_size
         self.draw_ray()
 
         self.player_rect_collision = pg.Rect(self.player_pos[0] - 10, self.player_pos[1] - 10, 20, 20)
@@ -179,7 +241,7 @@ class Player:
 
         #self.player_circle = pg.draw.circle(win, 'white', self.player_pos, 10)
         if self.alive:
-            self.movement()
+            self.controls()
 
         self.check_intersection()
 
@@ -187,6 +249,7 @@ class Player:
         self.check_if_able_to_input_power()
         self.check_click_event()
         self.return_to_menu()
+        self.direction_update()
 
     def draw_ray(self):
         win = self.window
@@ -199,32 +262,32 @@ class Player:
         self.cast_multiple_rays()
 
     def turn(self):
-        if self.alive:
-            if self.game.window_selected:
-                mouse_rel = self.game.mouse_rel
-                mouse_pos = self.game.mousepos
-                win_size = pg.display.get_window_size()
-                if mouse_rel[0] != 0:
-                    self.angle += (mouse_rel[0] * mouse_sensitivity)
-                if mouse_rel[1] != 0:
-                    if self.vertical_angle < (win_size[1] * .8):
-                        if mouse_rel[1] > 0:
-                            pass
-                        else:
-                            self.vertical_angle -= ((mouse_rel[1] * 10) * mouse_sensitivity)   
+        if not self.body.game.menu.running:
+            if self.alive:
+                if self.game.window_selected:
+                    mouse_rel = self.game.mouse_rel
+                    mouse_pos = self.game.mousepos
+                    if mouse_rel[0] != 0:
+                        self.angle += (mouse_rel[0] * mouse_sensitivity)
+                    if mouse_rel[1] != 0:
+                        if self.vertical_angle < (self.ws[1] * .8):
+                            if mouse_rel[1] > 0:
+                                pass
+                            else:
+                                self.vertical_angle -= ((mouse_rel[1] * 10) * mouse_sensitivity)   
 
-                    if self.vertical_angle > (win_size[1] * .2):
-                        if mouse_rel[1] < 0:
-                            pass
-                        else:
-                            self.vertical_angle -= ((mouse_rel[1] * 10) * mouse_sensitivity) 
-                
-                if (mouse_pos[0] > (WIDTH - 200)) or (mouse_pos[0] < 200) or (mouse_pos[1] > (HEIGHT - 200)) or (mouse_pos[1] < 200):
-                    pg.mouse.set_pos(WIDTH/2, HEIGHT/2)
+                        if self.vertical_angle > (self.ws[1] * .2):
+                            if mouse_rel[1] < 0:
+                                pass
+                            else:
+                                self.vertical_angle -= ((mouse_rel[1] * 10) * mouse_sensitivity) 
+                    
+                    if (mouse_pos[0] > (self.ws[0] - 200)) or (mouse_pos[0] < 200) or (mouse_pos[1] > (self.ws[1] - 200)) or (mouse_pos[1] < 200):
+                        pg.mouse.set_pos(self.ws[0]/2, self.ws[1]/2)
 
-                #pg.mouse.set_pos(WIDTH/2, HEIGHT/2)
+                    #pg.mouse.set_pos(WIDTH/2, HEIGHT/2)
 
-    def movement(self):
+    def controls(self):
         keys = pg.key.get_pressed()
 
         self.speed = (player_speed / 30) * self.game.delta_time
@@ -273,6 +336,10 @@ class Player:
             self.look_behind = 180
         else:
             self.look_behind = 0
+        if keys[pg.K_TAB]:
+            self.show_minimap = True
+        else:
+            self.show_minimap = False
         
 
         self.collision_checker(dx, dy)
@@ -303,6 +370,10 @@ class Player:
         if self.player_rect_collision.collidepoint(self.enemy.enemy_coordinate):
             if not self.game_over:
                 self.fgame_over()
+
+        if self.player_rect_collision.collidepoint(self.portal.pos):
+            if self.portal.activated:
+                self.fwin()
 
         self.ui.pt_activate = False
         if self.player_rect_collision.collidepoint(self.powercell.pos):
@@ -630,6 +701,9 @@ class Player:
         self.angle = m.degrees(self.enemy_angle)
         self.body.graphics.jumpscare.play()
 
+    def fwin(self):
+        self.escaped = True
+
     def return_to_menu(self):
         if not self.alive:
             if self.return_to_menu_delay < 25:
@@ -638,17 +712,48 @@ class Player:
                 self.game.menu.running = True
                 pg.mouse.set_visible(True)
 
+    def direction_update(self):
+        angle = m.radians(self.angle)
+        dx = m.cos(angle)
+        dy = m.sin(angle)
+        mag = m.sqrt(dx*dx + dy*dy)
+        direction = ''
+        if mag >0:
+            dx /= mag
+            dy /= mag
+        if dx > 0.5:
+            if dy > 0.5:
+                direction = "SE"
+            elif dy < -0.5:
+                direction = "NE"
+            else:
+                direction = "E"
+        elif dx < -0.5:
+            if dy > 0.5:
+                direction = "SW"
+            elif dy < -0.5:
+                direction = "NW"
+            else:
+                direction = "W"
+        else:
+            if dy > 0.5:
+                direction = "S"
+            elif dy < -0.5:
+                direction = "N"
+        self.direction = direction
+
 class Graphics:
     def __init__(self, body):
         self.wall_texture = pg.image.load('textures/wall.jpg')
         self.window = body.window
+        self.game = body.game
+        self.ws = body.win_size
         self.player = body.player
         self.body = body
         self.enemy = body.enemy
         self.powersystem = body.powersystem
         self.powercell = body.powercell
         self.portal = body.portal
-        self.win_size = pg.display.get_window_size()
         self.fog = 1
         self.or_fog = self.fog
         self.a = 0
@@ -658,8 +763,8 @@ class Graphics:
         self.A_texture_size = self.A_texture.get_width(), self.A_texture.get_height()
         
         #self.chase_image = pg.image.load('textures/chase_image.jpg').convert_alpha()
-        self.chase_rect = pg.Rect(0, 0, self.win_size[0], self.win_size[1])
-        self.transparent_surface = pg.Surface((self.win_size[0], self.win_size[1]), pg.SRCALPHA)
+        #self.chase_rect = pg.Rect(0, 0, self.ws[0], self.ws[1])
+        self.transparent_surface = pg.Surface((self.ws[0], self.ws[1]), pg.SRCALPHA)
 
         # POWER CELL
         self.powercell_img = pg.image.load('textures/powercell.png')
@@ -698,9 +803,9 @@ class Graphics:
 
 
     def render_walls(self):
+        #self.ws = self.body.win_size
         self.vertical_angle = self.player.vertical_angle
-        va = 300#self.vertical_angle
-        winsize = self.win_size
+        va = self.ws[1]/2#self.vertical_angle
         x = 4
         coord = None
         coord2 = None
@@ -719,7 +824,7 @@ class Graphics:
             pyth = m.sqrt(dif[0]**2 + dif[1]**2)
             dis = pyth * m.cos(m.radians(angle))
             try:
-                a = ((30 * winsize[1]) / (dis)) #/ 10
+                a = ((30 * self.ws[1]) / (dis)) #/ 10
             except:
                 pass
             #a = (50000 / pyth) / 10
@@ -751,7 +856,7 @@ class Graphics:
                 ds = 0
 
             try:
-                pg.draw.line(self.window, c1, (x, va + a + ds), (x, va - a - ds), 5)
+                pg.draw.line(self.window, c1, (x, va + a + ds), (x, va - a - ds), m.ceil(self.ws[1]/num_rays) + 2)
             except:
                 pass
 
@@ -776,7 +881,7 @@ class Graphics:
                 if self.player.middle_point4 == i:
                     coord4 = (x, va)
                     
-            x += 4.44
+            x += (self.ws[0]/num_rays)
         
             
         if self.player.player_sees_enemy:
@@ -815,7 +920,7 @@ class Graphics:
 
     def enemy_sprite_size_calculator(self):
         
-        self.a = ((.3 * self.win_size[1]) / (self.enemy.distance_to_player))
+        self.a = ((.3 * self.ws[1]) / (self.enemy.distance_to_player))
         x = 5
         if self.a > x:
             self.a = x
@@ -824,7 +929,7 @@ class Graphics:
         self.A_texture_dimension_half = ((self.A_texture_dimension[0] / 2), (self.A_texture_dimension[1] / 2))
 
     def ps_sprite_size_calculator(self):
-        self.ps = ((self.win_size[1]) / self.powersystem.distance_to_player)
+        self.ps = ((self.ws[1]) / self.powersystem.distance_to_player)
         if self.ps > 25:
             self.ps = 25
         if int(self.ps) > 0:
@@ -840,7 +945,7 @@ class Graphics:
             self.powersystem_img0 = scaled_img_ps2[2]
 
     def pc_sprite_size_calculator(self):
-        self.pc = ((self.win_size[1]) / self.powercell.distance_to_player)
+        self.pc = ((self.ws[1]) / self.powercell.distance_to_player)
         if self.pc > 15:
             self.pc = 15
         if int(self.pc) > 0:
@@ -849,7 +954,7 @@ class Graphics:
             self.powercell_img = scaled_img_powercell[2]
 
     def portal_sprite_size_calculator(self):
-        self.p = ((self.win_size[1]) / self.portal.distance_to_player)
+        self.p = ((self.ws[1]) / self.portal.distance_to_player)
         if self.p > 20:
             self.p = 20
         if int(self.p) > 0:
@@ -869,6 +974,7 @@ class Graphics:
             #pg.draw.rect(self.window, (255, 0, 0, self.b), self.chase_rect_clone, pg.BLEND_RGBA_MULT)
             #self.chase_rect_clone.fill((255, 255, 255, self.b), None, pg.BLEND_RGBA_MULT)
         # self.window.blit(self.chase_rect_clone, (0, 0))    
+            self.transparent_surface = pg.Surface((self.ws[0], self.ws[1]), pg.SRCALPHA)
             self.transparent_surface.fill((255, 0, 0, self.b))
             self.window.blit(self.transparent_surface, (0, 0))
 
@@ -879,12 +985,14 @@ class Graphics:
             #print(self.d)
             if self.c > f:
                 self.c = f
-            self.heartbeat_audio.set_volume(self.c)
-            self.tv_static_audio.set_volume(self.d) 
+            if pg.mixer.get_init():
+                self.heartbeat_audio.set_volume(self.c)
+                self.tv_static_audio.set_volume(self.d) 
         else:
-            self.heartbeat_audio.set_volume(0)
-            self.tv_static_audio.set_volume(0) 
-            self.ambience.set_volume(0)
+            if pg.mixer.get_init():
+                self.heartbeat_audio.set_volume(0)
+                self.tv_static_audio.set_volume(0) 
+                self.ambience.set_volume(0)
 
     def min_and_max(self, a, b, c):
         x = max(a, min(b, (c - self.enemy.distance_to_player) * (b / c)))
@@ -1119,7 +1227,7 @@ class Portal:
         self.body = body
         self.window = body.window
         self.powersystem = body.powersystem
-        self.pos = (20, 300)
+        self.pos = (765, 580)
         self.cross_size = 3
         self.cross = ((0, 0), (0, 0), (0, 0), (0, 0))
         self.line1 = (0, 0), (0, 0)

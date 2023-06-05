@@ -54,12 +54,13 @@ class Main:
                         self.game_is_running = False
                 
                 if events.type == pg.MOUSEBUTTONDOWN:
-                    if self.mousepos[0] < WIDTH and self.mousepos[0] > 0 and self.mousepos[1] < HEIGHT and self.mousepos[1] > 0:
+                    if self.mousepos[0] < self.window_size[0] and self.mousepos[0] > 0 and self.mousepos[1] < self.window_size[1] and self.mousepos[1] > 0:
                         self.window_selected = True
                         pg.mouse.set_visible(False)
                         self.game_is_running = True
 
     def draw(self):
+        self.update_window_size()
         if self.game_is_running:
             if not self.menu.running:
                 self.window.fill(bg_color)        
@@ -76,8 +77,11 @@ class Main:
                 self.body.powersystem.update()
                 self.body.portal.update()
                 self.body.ui.update()
+
+                if self.body.player.escaped:
+                    self.body = None
         else:
-            self.window.blit(self.paused_img, (WIDTH/2 - self.paused_img.get_width() / 2, HEIGHT/2 - self.paused_img.get_height()/2))
+            self.window.blit(self.paused_img, (self.window_size[0]/2 - self.paused_img.get_width() / 2, self.window_size[1]/2 - self.paused_img.get_height()/2))
 
     def run(self):
         
@@ -88,6 +92,9 @@ class Main:
             else:
                 self.check_events(True)
                 self.update()
+
+    def update_window_size(self):
+        self.window_size = pg.display.get_window_size()
 
 if __name__ == '__main__':
     game = Main()

@@ -49,6 +49,7 @@ class Menu:
     def update(self):
         self.display()
         self.button_event_checker()
+        pg.mouse.set_visible(True)
 
     def display(self):
         self.window.fill((15, 15, 15))
