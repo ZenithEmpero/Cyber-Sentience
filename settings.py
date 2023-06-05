@@ -8,7 +8,7 @@ SCB = False   # SHOW COLLISION BOX
 
 # GAME SETTINGS
 minimap = True
-WIDTH, HEIGHT = (1000, 600)
+WIDTH, HEIGHT = (1280, 657)
 FPS = 60
 bg_color = 'black'
 

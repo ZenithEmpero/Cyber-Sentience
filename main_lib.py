@@ -856,7 +856,7 @@ class Graphics:
                 ds = 0
 
             try:
-                pg.draw.line(self.window, c1, (x, va + a + ds), (x, va - a - ds), m.ceil(self.ws[1]/num_rays) + 2)
+                pg.draw.line(self.window, c1, (x, va + a + ds), (x, va - a - ds), m.ceil(self.ws[0]/num_rays) + 1)
             except:
                 pass
 
