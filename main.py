@@ -3,18 +3,23 @@ import tkinter as tk
 import sys
 from threading import Thread
 from settings import *
+#from main_lib import *
 from menu import *
 
 class Main:
     def __init__(self) -> None:
         pg.init()
+        #pg.mouse.set_visible(False)
         self.clock = pg.time.Clock()
         self.window_size = (WIDTH, HEIGHT)
         self.window_selected = False
 
+        #self.new_game(self.window_size)
+        #self.second_window()
         self.window = pg.display.set_mode(self.window_size, flags=pg.RESIZABLE)
         pg.display.set_caption('CYBER SENTIENCE 2203')
 
+        
         self.body = None
         self.menu = Menu(self)
         self.all_events = pg.event.get()
@@ -61,8 +66,13 @@ class Main:
                 self.window.fill(bg_color)        
                 self.body.draw()
                 self.body.graphics.render_walls()
+                #self.body.draw_line_wall()
+                #self.body.draw_nodes()
+
                 self.body.enemy.draw()
+
                 self.body.graphics.draw_chase_texture()
+
                 self.body.powercell.update()
                 self.body.powersystem.update()
                 self.body.portal.update()
@@ -74,6 +84,7 @@ class Main:
             self.window.blit(self.paused_img, (self.window_size[0]/2 - self.paused_img.get_width() / 2, self.window_size[1]/2 - self.paused_img.get_height()/2))
 
     def run(self):
+        
         while self.running:
             if self.menu.running:
                 self.menu.update()
