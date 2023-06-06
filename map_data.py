@@ -124,8 +124,8 @@ column_lenght = len(matrix[0])
 
 nodes = {}
 
-y_dif = HEIGHT / len(matrix)
-x_dif =  WIDTH / len(matrix[0])
+y_dif = 600 / len(matrix)
+x_dif =  800 / len(matrix[0])
 
 additional_grid_value = 12
 x = additional_grid_value

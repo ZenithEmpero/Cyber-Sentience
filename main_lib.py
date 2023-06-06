@@ -693,6 +693,7 @@ class Player:
             if events.type == pg.MOUSEBUTTONUP:
                 if self.able_to_input_power:
                     self.powersystem.power += 1
+                    self.enemy.speed += .0133
                     self.carrying_powercell = False
 
     def fgame_over(self):
@@ -1018,6 +1019,8 @@ class Enemy:
         self.go_to_seen_pos = False
 
     def draw(self):
+        self.chase_speed = self.speed * 2
+        print(self.speed, self.chase_speed)
         if self.body.player.alive:
             self.check_if_see_player()
             self.draw_render_box()
@@ -1030,7 +1033,7 @@ class Enemy:
         self.line2 = (self.enemy_coordinate[0], self.render_box[0][1]), (self.enemy_coordinate[0], self.render_box[1][1])
         #pg.draw.line(self.window, 'white', (self.render_box[0][0], self.enemy_coordinate[1]), (self.render_box[1][0], self.enemy_coordinate[1]))
         #pg.draw.line(self.window, 'white', (self.enemy_coordinate[0], self.render_box[0][1]), (self.enemy_coordinate[0], self.render_box[1][1]))
-
+        pg.draw.circle(self.window, 'red', self.enemy_coordinate, 5)
     def movement(self):
         if len(self.pos_nodes) > 0:
             speed = self.speed_using * self.game.delta_time

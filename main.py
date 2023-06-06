@@ -66,8 +66,8 @@ class Main:
                 self.window.fill(bg_color)        
                 self.body.draw()
                 self.body.graphics.render_walls()
-                #self.body.draw_line_wall()
-                #self.body.draw_nodes()
+                self.body.draw_line_wall()
+                self.body.draw_nodes()
 
                 self.body.enemy.draw()
 
