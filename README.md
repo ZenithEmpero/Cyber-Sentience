@@ -2,7 +2,6 @@
 > The sprite rendering in this code is inefficient as it is not updated and did not use the built-in python sprite renderer.
 
 ## CAPSTONE GAME PROJECT
-### First Person Horror Game
 ###### Members:
 1. BALBUTIN
 2. TORRES
