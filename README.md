@@ -1,3 +1,6 @@
+> [!NOTE]
+> The sprite rendering in this code is inefficient as it is not updated and did not use the built-in python sprite renderer.
+
 ## CAPSTONE GAME PROJECT
 ### First Person Horror Game
 ###### Members:
@@ -8,7 +11,4 @@
 5. ACUNO
 6. PADILLA
 
-```
-*NOTE: The sprite rendering in this code is inefficient as it is not updated and did not use the built-in python sprite renderer.
-```
 ![Some gameplay](https://media.giphy.com/media/w2lAjp2lwMgMaeJmgT/giphy.gif)
