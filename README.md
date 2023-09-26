@@ -9,7 +9,7 @@
 6. PADILLA
 
 ```
-*NOTE: The sprite rendering algorithm in this code is inefficient as it is not updated and did not use the built-in python sprite renderer.
+*NOTE: The sprite rendering algorithm in this code is inefficient as it is
+not updated and did not use the built-in python sprite renderer.
 ```
-![alt text]
-(https://media.giphy.com/media/w2lAjp2lwMgMaeJmgT/giphy.gif)
+![Some gameplay](https://media.giphy.com/media/w2lAjp2lwMgMaeJmgT/giphy.gif)
