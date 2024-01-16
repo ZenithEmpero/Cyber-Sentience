@@ -3,10 +3,3 @@
 
 ## CAPSTONE GAME PROJECT
 ![Some gameplay](https://media.giphy.com/media/w2lAjp2lwMgMaeJmgT/giphy.gif)
-###### Members:
-1. BALBUTIN
-2. TORRES
-3. GUILING
-4. ATIENZA
-5. ACUNO
-6. PADILLA
